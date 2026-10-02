@@ -8,22 +8,32 @@
   <style>
     /* ---- Colors & fonts: change these to restyle the whole site ---- */
     :root {
-      --bg: #fafaf9;
+      --bg: #f4f7fa;
       --surface: #ffffff;
-      --text: #1c1917;
-      --muted: #78716c;
-      --border: #e7e5e4;
-      --accent: #1d4ed8;
+      --text: #14213d;
+      --muted: #5b6b82;
+      --border: #dde5ee;
+      --accent: #0f766e;        /* teal */
+      --accent-soft: #e0f2f0;
+      --hero-from: #0b1d3a;     /* deep navy */
+      --hero-to: #12507a;
+      --hero-text: #ffffff;
+      --hero-muted: #b9c8dc;
+      --shadow: 0 1px 2px rgba(11, 29, 58, .06), 0 8px 24px rgba(11, 29, 58, .06);
       --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #12110f;
-        --surface: #1c1a18;
-        --text: #f5f5f4;
-        --muted: #a8a29e;
-        --border: #2e2b28;
-        --accent: #7aa2ff;
+        --bg: #0b1220;
+        --surface: #121c2e;
+        --text: #eaf0f8;
+        --muted: #9fb0c8;
+        --border: #22304a;
+        --accent: #3fc1b4;
+        --accent-soft: #14343a;
+        --hero-from: #08142a;
+        --hero-to: #0f3b5c;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
       }
     }
 
@@ -34,68 +44,91 @@
       font-family: var(--font);
       background: var(--bg);
       color: var(--text);
-      line-height: 1.65;
+      line-height: 1.7;
     }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
 
-    /* Header / nav */
-    header { border-bottom: 1px solid var(--border); }
-    nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
-    nav .brand { font-weight: 600; color: var(--text); }
+    /* Hero band */
+    .top {
+      background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+      color: var(--hero-text);
+    }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
+    nav .brand { font-weight: 600; letter-spacing: .02em; }
     nav ul { display: flex; gap: 24px; list-style: none; margin: 0; padding: 0; }
-    nav ul a { color: var(--muted); font-size: 0.95rem; }
-    nav ul a:hover { color: var(--text); text-decoration: none; }
+    nav ul a { color: var(--hero-muted); font-size: .95rem; }
+    nav ul a:hover { color: #fff; text-decoration: none; }
 
-    /* Hero */
-    .hero { display: flex; align-items: center; gap: 40px; padding: 72px 0 56px; }
+    .hero { display: flex; align-items: center; gap: 40px; padding: 48px 0 96px; }
     .photo {
       flex: none;
-      width: 160px; height: 160px;
+      width: 168px; height: 168px;
       border-radius: 50%;
-      background: var(--border);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted); font-size: 0.85rem; text-align: center;
+      border: 4px solid rgba(255, 255, 255, .85);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
       overflow: hidden;
+      background: var(--border);
     }
-    .photo img { width: 100%; height: 100%; object-fit: cover; }
-    .hero h1 { font-size: 2.6rem; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; }
-    .hero .tagline { margin: 0; color: var(--muted); font-size: 1.15rem; }
+    .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero h1 { font-size: 2.8rem; line-height: 1.1; margin: 0 0 10px; letter-spacing: -.02em; }
+    .hero .tagline { margin: 0; color: var(--hero-muted); font-size: 1.1rem; }
+    .hero .tagline strong { color: #fff; font-weight: 600; }
 
-    /* Sections */
-    section { padding: 48px 0; border-top: 1px solid var(--border); }
+    /* Cards overlap the hero band */
+    main { margin-top: -56px; padding-bottom: 24px; }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 36px 40px;
+      margin-bottom: 24px;
+    }
     h2 {
       margin: 0 0 20px;
-      font-size: 0.8rem; font-weight: 600;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--muted);
+      font-size: .8rem; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--accent);
     }
-    section p { margin: 0 0 16px; max-width: 60ch; }
+    section p { margin: 0 0 16px; max-width: 62ch; }
+    section p:last-child { margin-bottom: 0; }
 
     /* Contact */
     .contact { list-style: none; margin: 0; padding: 0; }
     .contact li {
-      display: flex; gap: 16px;
+      display: flex; gap: 16px; align-items: center;
       padding: 14px 0;
       border-bottom: 1px solid var(--border);
     }
-    .contact li:last-child { border-bottom: 0; }
-    .contact .label { width: 90px; flex: none; color: var(--muted); }
+    .contact li:last-child { border-bottom: 0; padding-bottom: 0; }
+    .contact li:first-child { padding-top: 0; }
+    .contact .label { width: 90px; flex: none; color: var(--muted); font-size: .95rem; }
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600; font-size: .95rem;
+    }
+    .btn:hover { text-decoration: none; filter: brightness(.96); }
 
-    footer { padding: 32px 0 48px; color: var(--muted); font-size: 0.875rem; border-top: 1px solid var(--border); }
+    footer { padding: 16px 0 48px; color: var(--muted); font-size: .875rem; text-align: center; }
 
-    @media (max-width: 560px) {
-      .hero { flex-direction: column; align-items: flex-start; gap: 24px; padding-top: 48px; }
-      .hero h1 { font-size: 2.1rem; }
+    @media (max-width: 600px) {
+      .hero { flex-direction: column; align-items: flex-start; gap: 24px; padding: 32px 0 80px; }
+      .hero h1 { font-size: 2.2rem; }
+      section { padding: 28px 22px; }
       nav ul { gap: 16px; }
     }
   </style>
 </head>
 <body>
 
-  <header>
+  <div class="top">
     <div class="wrap">
       <nav>
         <span class="brand">Andrew</span>
@@ -104,19 +137,19 @@
           <li><a href="#contact">Contact</a></li>
         </ul>
       </nav>
-    </div>
-  </header>
 
-  <main class="wrap">
-
-    <!-- ===== INTRO: edit your name and tagline here (photo is photo.jpg) ===== -->
-    <div class="hero">
-      <div class="photo"><img src="photo.jpg" alt="Photo of Andrew" width="160" height="160"></div>
-      <div>
-        <h1>Andrew</h1>
-        <p class="tagline">Personal Injury Attorney &middot; Zehl &amp; Associates &middot; Houston, Texas</p>
+      <!-- ===== INTRO: edit your name and tagline here (photo is photo.jpg) ===== -->
+      <div class="hero">
+        <div class="photo"><img src="photo.jpg" alt="Photo of Andrew" width="168" height="168"></div>
+        <div>
+          <h1>Andrew</h1>
+          <p class="tagline"><strong>Personal Injury Attorney</strong> &middot; Zehl &amp; Associates &middot; Houston, Texas</p>
+        </div>
       </div>
     </div>
+  </div>
+
+  <main class="wrap">
 
     <!-- ===== ABOUT: edit these paragraphs ===== -->
     <section id="about">
@@ -154,13 +187,10 @@
     <section id="contact">
       <h2>Contact</h2>
       <ul class="contact">
-        <li><span class="label">Email</span> <a href="mailto:apoe.dc7@gmail.com">apoe.dc7@gmail.com</a></li>
+        <li><span class="label">Email</span> <a href="mailto:apoe@zehllaw.com">apoe@zehllaw.com</a></li>
+        <li><span class="label">LinkedIn</span> <a class="btn" href="https://www.linkedin.com/in/andrew-poe-6a48a5113" target="_blank" rel="noopener">View my LinkedIn profile</a></li>
         <li><span class="label">Firm</span> <span>Zehl &amp; Associates</span></li>
         <li><span class="label">Location</span> <span>Houston, Texas</span></li>
-        <!-- Optional: copy a line below and fill it in
-        <li><span class="label">LinkedIn</span> <a href="https://www.linkedin.com/in/your-name">linkedin.com/in/your-name</a></li>
-        <li><span class="label">Phone</span> <a href="tel:+10000000000">(000) 000-0000</a></li>
-        -->
       </ul>
     </section>
 
