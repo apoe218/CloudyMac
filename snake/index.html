@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f1a">
+  <title>Snake</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+
+    <!-- Heads-up display: score, best, level, pause + mute buttons -->
+    <header class="hud">
+      <div class="stat"><span class="label">Score</span><span class="value" id="score">0</span></div>
+      <div class="stat"><span class="label">Best</span><span class="value" id="best">0</span></div>
+      <div class="stat"><span class="label">Level</span><span class="value" id="level">1</span></div>
+      <div class="tools">
+        <button class="icon-btn" id="pauseBtn" type="button" aria-label="Pause" title="Pause (P / Space)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
+        </button>
+        <button class="icon-btn" id="muteBtn" type="button" aria-label="Mute" title="Mute (M)">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/>
+            <g class="waves"><path d="M15 9a4 4 0 0 1 0 6" fill="none"/><path d="M17.5 6.5a8 8 0 0 1 0 11" fill="none"/></g>
+            <g class="cross"><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none"/></g>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- The board: canvas plus the three overlay screens -->
+    <div class="board" id="board">
+      <canvas id="game" aria-label="Snake game board"></canvas>
+
+      <section class="overlay" id="startScreen">
+        <h1 class="title">Snake</h1>
+        <div class="difficulty" id="difficulty" role="radiogroup" aria-label="Difficulty">
+          <button type="button" role="radio" data-diff="easy">Easy</button>
+          <button type="button" role="radio" data-diff="normal">Normal</button>
+          <button type="button" role="radio" data-diff="hard">Hard</button>
+        </div>
+        <p class="hint" id="diffHint"></p>
+        <button class="primary" id="startBtn" type="button">
+          <span class="kb-only">Press <kbd>Enter</kbd> to start</span>
+          <span class="touch-only">Tap to start</span>
+        </button>
+        <ul class="legend">
+          <li><kbd>←↑↓→</kbd> <kbd>WASD</kbd> move</li>
+          <li><kbd>Space</kbd> <kbd>P</kbd> pause</li>
+          <li><kbd>M</kbd> mute</li>
+          <li class="touch-only">Swipe or use the buttons</li>
+          <li>Golden apple = 50 pts, vanishes in 5s</li>
+        </ul>
+      </section>
+
+      <section class="overlay" id="pauseScreen" hidden>
+        <h2 class="title small">Paused</h2>
+        <button class="primary" id="resumeBtn" type="button">
+          <span class="kb-only">Press <kbd>Space</kbd> to resume</span>
+          <span class="touch-only">Tap to resume</span>
+        </button>
+      </section>
+
+      <section class="overlay" id="overScreen" hidden>
+        <h2 class="title small" id="overTitle">Game over</h2>
+        <p class="record" id="newRecord" hidden>New high score!</p>
+        <div class="results">
+          <div><span class="label">Score</span><span class="big" id="finalScore">0</span></div>
+          <div><span class="label">High score</span><span class="big" id="finalBest">0</span></div>
+        </div>
+        <button class="primary" id="againBtn" type="button">
+          <span class="kb-only">Press <kbd>Enter</kbd> to play again</span>
+          <span class="touch-only">Tap to play again</span>
+        </button>
+      </section>
+    </div>
+
+    <!-- On-screen arrows (shown on touch devices / narrow screens) -->
+    <nav class="dpad" aria-label="Direction controls">
+      <button type="button" data-dir="up" aria-label="Up">▲&#xFE0E;</button>
+      <button type="button" data-dir="left" aria-label="Left">◀&#xFE0E;</button>
+      <button type="button" data-dir="down" aria-label="Down">▼&#xFE0E;</button>
+      <button type="button" data-dir="right" aria-label="Right">▶&#xFE0E;</button>
+    </nav>
+
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
