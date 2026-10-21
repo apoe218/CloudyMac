@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reelle | A Themed Film Guessing Game</title>
+<style>
+  :root {
+    --bg: #12111a; --surface: #1c1b28; --surface2: #262536; --text: #f2eff7; --muted: #9b97b2;
+    --border: #34324a; --accent: #f5b83d; --good: #2e9d5b; --part: #c98a14; --bad: #3a3850;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f6f3ee; --surface: #ffffff; --surface2: #efeae2; --text: #1d1b26; --muted: #6c6878;
+      --border: #ddd6ca; --accent: #b9770e; --good: #2e9d5b; --part: #d79a1f; --bad: #d9d4ca; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.4; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  h1 { margin: 0; font-size: 1.7rem; letter-spacing: .08em; text-transform: uppercase; }
+  h1 span { color: var(--accent); }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); padding: 8px 12px; border-radius: 8px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #1a1405; border-color: var(--accent); font-weight: 700; }
+
+  .theme { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .theme .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+  .theme .clue { font-size: 1.35rem; font-weight: 700; margin: 4px 0 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: .85rem; padding: 5px 10px; border-radius: 999px; background: var(--surface2); color: var(--muted); }
+  .chip.on { color: var(--text); background: var(--surface2); border: 1px solid var(--accent); }
+
+  .search { position: relative; margin-bottom: 8px; }
+  .search input { width: 100%; font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); }
+  .search input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  #list { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 4px 0 0; padding: 0; list-style: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; max-height: 300px; overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  #list li { padding: 9px 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+  #list li small { color: var(--muted); }
+  #list li.sel, #list li:hover { background: var(--surface2); }
+  .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: .9rem; margin-bottom: 10px; }
+
+  .board { overflow-x: auto; padding-bottom: 6px; }
+  .grid { display: grid; grid-template-columns: 150px repeat(8, minmax(88px, 1fr)); gap: 6px; min-width: 860px; margin-bottom: 6px; }
+  .grid.head div { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 4px; }
+  .cell { border-radius: 8px; padding: 8px 6px; min-height: 58px; display: flex; flex-direction: column; justify-content: center;
+    align-items: center; text-align: center; font-size: .82rem; background: var(--bad); animation: pop .4s ease both; }
+  .cell.title { background: var(--surface); border: 1px solid var(--border); font-weight: 700; align-items: flex-start; text-align: left; padding-left: 10px; }
+  .cell.title small { color: var(--muted); font-weight: 400; }
+  .cell.good { background: var(--good); color: #fff; }
+  .cell.part { background: var(--part); color: #1a1405; }
+  .cell .arrow { font-size: 1.1rem; font-weight: 800; }
+  .cell b.m { text-decoration: underline; }
+  @keyframes pop { from { transform: rotateX(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .legend { color: var(--muted); font-size: .8rem; margin-top: 8px; }
+
+  dialog { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text);
+    max-width: 440px; width: calc(100% - 32px); padding: 22px; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog h2 { margin: 0 0 6px; }
+  dialog pre { background: var(--surface2); padding: 10px; border-radius: 8px; font-family: inherit; white-space: pre-wrap; }
+  dialog ul { padding-left: 18px; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ree<span>lle</span></h1>
+    <div class="btns">
+      <button id="btnHelp">How to play</button>
+      <button id="btnStats">Stats</button>
+      <button id="btnNew">New random game</button>
+    </div>
+  </header>
+
+  <section class="theme">
+    <div class="label" id="modeLabel">Tonight's theme</div>
+    <div class="clue" id="clue"></div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <div class="search">
+    <input id="input" type="text" placeholder="Type a film title…" autocomplete="off" spellcheck="false">
+    <ul id="list" hidden></ul>
+  </div>
+  <div class="meta"><span id="count"></span><span id="status"></span></div>
+
+  <div class="board">
+    <div class="grid head" id="head"></div>
+    <div id="rows"></div>
+  </div>
+  <div class="legend">Green = match · Amber = close / partly shared · Arrows point toward the mystery film.</div>
+</div>
+
+<dialog id="dlgHelp">
+  <h2>How to play</h2>
+  <p>Every game has a secret <b>theme</b> and a mystery film that fits it. You get a vague clue about the theme up front, and clearer ones as you guess.</p>
+  <ul>
+    <li>Guess any film. You have <b>10</b> guesses.</li>
+    <li>Each guess shows how it compares: year, genre, director, stars, studio, rating, runtime.</li>
+    <li>The <b>Theme</b> column tells you if your guess also fits the game's theme. The mystery film always does.</li>
+    <li>Clue 2 unlocks after 4 guesses. The theme's real name unlocks after 7.</li>
+    <li>A new daily game is picked each day. Use "New random game" for more.</li>
+  </ul>
+  <div class="row"><button class="primary" data-close>Got it</button></div>
+</dialog>
+
+<dialog id="dlgStats">
+  <h2>Your stats</h2>
+  <div id="statsBody"></div>
+  <div class="row"><button data-close>Close</button></div>
+</dialog>
+
+<dialog id="dlgEnd">
+  <h2 id="endTitle"></h2>
+  <div id="endBody"></div>
+  <pre id="endShare"></pre>
+  <div class="row"><button id="btnCopy">Copy result</button><button class="primary" id="btnAgain">Play another</button></div>
+</dialog>
+
+<script>
+/* ============================================================
+   DATA — add films and themes here.
+   f(title, year, director, [stars], [genres], studio, rating, minutes, [theme ids])
+   ============================================================ */
+const THEMES = {
+  con:      { name: "Heists & Cons",              clues: ["Nobody here is who they say they are.", "The plan matters more than the payoff."] },
+  alone:    { name: "Survival & Isolation",       clues: ["Help is a very long way off.", "One person, one problem, no rescue in sight."] },
+  twist:    { name: "Twist Endings",              clues: ["Watch it again and it's a different film.", "The last ten minutes rewrite everything before them."] },
+  underdog: { name: "Underdogs",                  clues: ["Nobody put money on them.", "Long odds, big heart, one shot."] },
+  monster:  { name: "Monsters & Things That Hunt",clues: ["Something out there is very patient.", "Don't go in the water. Or the basement. Or the woods."] },
+  time:     { name: "Time Bending",               clues: ["It's less about where, more about when.", "Do it over. Or undo it. Or run out of it."] },
+  family:   { name: "Family, Chosen or Not",      clues: ["You don't pick the people who made you.", "Home turns out to be a group of people."] },
+  dream:    { name: "Dreams & Simulated Worlds",  clues: ["Is any of this actually real?", "Reality has a glitch in it."] },
+  greed:    { name: "Ambition & Greed",           clues: ["Wanting more, whatever it costs.", "The climb always sends a bill."] }
+};
+
+const FILMS = [];
+const f = (title, year, director, stars, genres, studio, rating, runtime, themes) =>
+  FILMS.push({ title, year, director, stars, genres, studio, rating, runtime, themes });
+
+// --- Heists & cons
+f("Ocean's Eleven",2001,"Steven Soderbergh",["George Clooney","Brad Pitt"],["Crime","Comedy"],"Warner Bros.","PG-13",116,["con"]);
+f("The Italian Job",2003,"F. Gary Gray",["Mark Wahlberg","Charlize Theron"],["Action","Crime"],"Paramount","PG-13",111,["con"]);
+f("Heat",1995,"Michael Mann",["Al Pacino","Robert De Niro"],["Crime","Thriller"],"Warner Bros.","R",170,["con"]);
+f("Inception",2010,"Christopher Nolan",["Leonardo DiCaprio","Joseph Gordon-Levitt"],["Sci-Fi","Action","Thriller"],"Warner Bros.","PG-13",148,["con","dream"]);
+f("The Sting",1973,"George Roy Hill",["Paul Newman","Robert Redford"],["Crime","Comedy"],"Universal","PG",129,["con"]);
+f("Catch Me If You Can",2002,"Steven Spielberg",["Leonardo DiCaprio","Tom Hanks"],["Crime","Drama","Biography"],"DreamWorks","PG-13",141,["con"]);
+f("Baby Driver",2017,"Edgar Wright",["Ansel Elgort","Kevin Spacey"],["Action","Crime"],"Sony","R",113,["con"]);
+f("Now You See Me",2013,"Louis Leterrier",["Jesse Eisenberg","Mark Ruffalo"],["Thriller","Crime"],"Lionsgate","PG-13",115,["con"]);
+f("Reservoir Dogs",1992,"Quentin Tarantino",["Harvey Keitel","Tim Roth"],["Crime","Thriller"],"Other","R",99,["con"]);
+f("The Usual Suspects",1995,"Bryan Singer",["Kevin Spacey","Gabriel Byrne"],["Crime","Mystery","Thriller"],"Other","R",106,["con","twist"]);
+f("Dog Day Afternoon",1975,"Sidney Lumet",["Al Pacino","John Cazale"],["Crime","Drama"],"Warner Bros.","R",125,["con"]);
+f("Inside Man",2006,"Spike Lee",["Denzel Washington","Clive Owen"],["Crime","Thriller"],"Universal","R",129,["con"]);
+f("Dirty Rotten Scoundrels",1988,"Frank Oz",["Steve Martin","Michael Caine"],["Comedy","Crime"],"MGM/UA","PG",110,["con"]);
+
+// --- Survival & isolation
+f("Cast Away",2000,"Robert Zemeckis",["Tom Hanks","Helen Hunt"],["Adventure","Drama"],"20th Century","PG-13",143,["alone"]);
+f("The Martian",2015,"Ridley Scott",["Matt Damon","Jessica Chastain"],["Sci-Fi","Adventure","Drama"],"20th Century","PG-13",144,["alone"]);
+f("Gravity",2013,"Alfonso Cuarón",["Sandra Bullock","George Clooney"],["Sci-Fi","Thriller"],"Warner Bros.","PG-13",91,["alone"]);
+f("127 Hours",2010,"Danny Boyle",["James Franco","Amber Tamblyn"],["Adventure","Drama","Biography"],"20th Century","R",94,["alone"]);
+f("The Revenant",2015,"Alejandro G. Iñárritu",["Leonardo DiCaprio","Tom Hardy"],["Adventure","Drama","Western"],"20th Century","R",156,["alone"]);
+f("All Is Lost",2013,"J.C. Chandor",["Robert Redford"],["Adventure","Drama"],"Lionsgate","PG-13",106,["alone"]);
+f("Life of Pi",2012,"Ang Lee",["Suraj Sharma","Irrfan Khan"],["Adventure","Drama","Fantasy"],"20th Century","PG",127,["alone","dream"]);
+f("Alien",1979,"Ridley Scott",["Sigourney Weaver","Tom Skerritt"],["Horror","Sci-Fi"],"20th Century","R",117,["alone","monster"]);
+f("Home Alone",1990,"Chris Columbus",["Macaulay Culkin","Joe Pesci"],["Comedy","Family"],"20th Century","PG",103,["alone","family"]);
+f("WALL-E",2008,"Andrew Stanton",["Ben Burtt","Elissa Knight"],["Animation","Sci-Fi","Family"],"Disney","G",98,["alone"]);
+f("Moon",2009,"Duncan Jones",["Sam Rockwell","Kevin Spacey"],["Sci-Fi","Drama","Mystery"],"Sony","R",97,["alone","twist"]);
+f("Interstellar",2014,"Christopher Nolan",["Matthew McConaughey","Anne Hathaway"],["Sci-Fi","Drama","Adventure"],"Paramount","PG-13",169,["alone","time","family"]);
+f("Apollo 13",1995,"Ron Howard",["Tom Hanks","Kevin Bacon"],["Drama","History","Adventure"],"Universal","PG",140,["alone","time"]);
+f("Mad Max: Fury Road",2015,"George Miller",["Tom Hardy","Charlize Theron"],["Action","Adventure","Sci-Fi"],"Warner Bros.","R",120,["alone"]);
+f("Die Hard",1988,"John McTiernan",["Bruce Willis","Alan Rickman"],["Action","Thriller"],"20th Century","R",132,["alone"]);
+
+// --- Twist endings
+f("The Sixth Sense",1999,"M. Night Shyamalan",["Bruce Willis","Haley Joel Osment"],["Thriller","Mystery","Drama"],"Disney","PG-13",107,["twist"]);
+f("Fight Club",1999,"David Fincher",["Brad Pitt","Edward Norton"],["Drama","Thriller"],"20th Century","R",139,["twist","dream"]);
+f("Shutter Island",2010,"Martin Scorsese",["Leonardo DiCaprio","Mark Ruffalo"],["Mystery","Thriller"],"Paramount","R",138,["twist","dream"]);
+f("Gone Girl",2014,"David Fincher",["Ben Affleck","Rosamund Pike"],["Mystery","Thriller","Drama"],"20th Century","R",149,["twist"]);
+f("Se7en",1995,"David Fincher",["Brad Pitt","Morgan Freeman"],["Crime","Mystery","Thriller"],"Warner Bros.","R",127,["twist"]);
+f("The Prestige",2006,"Christopher Nolan",["Christian Bale","Hugh Jackman"],["Drama","Mystery","Sci-Fi"],"Warner Bros.","PG-13",130,["twist"]);
+f("Planet of the Apes",1968,"Franklin J. Schaffner",["Charlton Heston","Roddy McDowall"],["Sci-Fi","Adventure"],"20th Century","G",112,["twist"]);
+f("Psycho",1960,"Alfred Hitchcock",["Anthony Perkins","Janet Leigh"],["Horror","Thriller"],"Paramount","R",109,["twist","monster"]);
+f("Get Out",2017,"Jordan Peele",["Daniel Kaluuya","Allison Williams"],["Horror","Thriller","Mystery"],"Universal","R",104,["twist"]);
+f("The Others",2001,"Alejandro Amenábar",["Nicole Kidman","Fionnula Flanagan"],["Horror","Mystery"],"Miramax","PG-13",101,["twist"]);
+f("Memento",2000,"Christopher Nolan",["Guy Pearce","Carrie-Anne Moss"],["Mystery","Thriller"],"Other","R",113,["twist"]);
+f("Parasite",2019,"Bong Joon-ho",["Song Kang-ho","Choi Woo-shik"],["Thriller","Drama","Comedy"],"Other","R",132,["twist","greed"]);
+f("Arrival",2016,"Denis Villeneuve",["Amy Adams","Jeremy Renner"],["Sci-Fi","Drama"],"Paramount","PG-13",116,["twist","time"]);
+f("Black Swan",2010,"Darren Aronofsky",["Natalie Portman","Mila Kunis"],["Drama","Thriller"],"20th Century","R",108,["twist","greed","dream"]);
+f("Knives Out",2019,"Rian Johnson",["Daniel Craig","Ana de Armas"],["Mystery","Comedy","Crime"],"Lionsgate","PG-13",130,["twist"]);
+
+// --- Underdogs
+f("Rocky",1976,"John G. Avildsen",["Sylvester Stallone","Talia Shire"],["Drama","Sport"],"MGM/UA","PG",119,["underdog"]);
+f("The Karate Kid",1984,"John G. Avildsen",["Ralph Macchio","Pat Morita"],["Drama","Sport","Family"],"Sony","PG",126,["underdog"]);
+f("Remember the Titans",2000,"Boaz Yakin",["Denzel Washington","Will Patton"],["Drama","Sport"],"Disney","PG",113,["underdog"]);
+f("Miracle",2004,"Gavin O'Connor",["Kurt Russell","Patricia Clarkson"],["Drama","Sport"],"Disney","PG",135,["underdog"]);
+f("Rudy",1993,"David Anspaugh",["Sean Astin","Jon Favreau"],["Drama","Sport"],"Sony","PG",114,["underdog"]);
+f("Moneyball",2011,"Bennett Miller",["Brad Pitt","Jonah Hill"],["Drama","Sport","Biography"],"Sony","PG-13",133,["underdog"]);
+f("Cool Runnings",1993,"Jon Turteltaub",["Leon","Doug E. Doug"],["Comedy","Sport","Family"],"Disney","PG",98,["underdog"]);
+f("The Mighty Ducks",1992,"Stephen Herek",["Emilio Estevez","Joss Ackland"],["Comedy","Sport","Family"],"Disney","PG",104,["underdog"]);
+f("Hoosiers",1986,"David Anspaugh",["Gene Hackman","Dennis Hopper"],["Drama","Sport"],"MGM/UA","PG",114,["underdog"]);
+f("Seabiscuit",2003,"Gary Ross",["Tobey Maguire","Jeff Bridges"],["Drama","Sport"],"Universal","PG-13",140,["underdog"]);
+f("Good Will Hunting",1997,"Gus Van Sant",["Matt Damon","Robin Williams"],["Drama"],"Miramax","R",126,["underdog"]);
+f("Slumdog Millionaire",2008,"Danny Boyle",["Dev Patel","Freida Pinto"],["Drama","Romance"],"20th Century","R",120,["underdog"]);
+f("Creed",2015,"Ryan Coogler",["Michael B. Jordan","Sylvester Stallone"],["Drama","Sport"],"Warner Bros.","PG-13",133,["underdog"]);
+f("Little Miss Sunshine",2006,"Jonathan Dayton & Valerie Faris",["Abigail Breslin","Greg Kinnear"],["Comedy","Drama"],"20th Century","R",101,["underdog","family"]);
+f("Dodgeball: A True Underdog Story",2004,"Rawson Marshall Thurber",["Vince Vaughn","Ben Stiller"],["Comedy","Sport"],"20th Century","PG-13",92,["underdog"]);
+f("Ratatouille",2007,"Brad Bird",["Patton Oswalt","Lou Romano"],["Animation","Comedy","Family"],"Disney","G",111,["underdog"]);
+f("Kung Fu Panda",2008,"Mark Osborne & John Stevenson",["Jack Black","Dustin Hoffman"],["Animation","Action","Comedy"],"DreamWorks","PG",92,["underdog"]);
+f("Forrest Gump",1994,"Robert Zemeckis",["Tom Hanks","Robin Wright"],["Drama","Romance"],"Paramount","PG-13",142,["underdog"]);
+f("Star Wars",1977,"George Lucas",["Mark Hamill","Harrison Ford"],["Sci-Fi","Adventure","Fantasy"],"20th Century","PG",121,["underdog","family"]);
+f("Shrek",2001,"Andrew Adamson",["Mike Myers","Eddie Murphy"],["Animation","Comedy","Family"],"DreamWorks","PG",90,["underdog"]);
+f("The Lord of the Rings: The Fellowship of the Ring",2001,"Peter Jackson",["Elijah Wood","Ian McKellen"],["Fantasy","Adventure"],"Warner Bros.","PG-13",178,["underdog","family"]);
+
+// --- Monsters & hunters
+f("Jaws",1975,"Steven Spielberg",["Roy Scheider","Robert Shaw"],["Thriller","Adventure"],"Universal","PG",124,["monster"]);
+f("Jurassic Park",1993,"Steven Spielberg",["Sam Neill","Laura Dern"],["Adventure","Sci-Fi","Thriller"],"Universal","PG-13",127,["monster"]);
+f("The Thing",1982,"John Carpenter",["Kurt Russell","Wilford Brimley"],["Horror","Sci-Fi"],"Universal","R",109,["monster","alone"]);
+f("A Quiet Place",2018,"John Krasinski",["Emily Blunt","John Krasinski"],["Horror","Sci-Fi","Drama"],"Paramount","PG-13",90,["monster","family"]);
+f("Predator",1987,"John McTiernan",["Arnold Schwarzenegger","Carl Weathers"],["Action","Sci-Fi","Horror"],"20th Century","R",107,["monster"]);
+f("Halloween",1978,"John Carpenter",["Jamie Lee Curtis","Donald Pleasence"],["Horror","Thriller"],"Other","R",91,["monster"]);
+f("The Shining",1980,"Stanley Kubrick",["Jack Nicholson","Shelley Duvall"],["Horror"],"Warner Bros.","R",146,["monster","family"]);
+f("Scream",1996,"Wes Craven",["Neve Campbell","Courteney Cox"],["Horror","Mystery"],"Miramax","R",111,["monster"]);
+f("The Exorcist",1973,"William Friedkin",["Ellen Burstyn","Linda Blair"],["Horror"],"Warner Bros.","R",122,["monster"]);
+f("Cloverfield",2008,"Matt Reeves",["Lizzy Caplan","Jessica Lucas"],["Sci-Fi","Horror"],"Paramount","PG-13",85,["monster"]);
+f("Gremlins",1984,"Joe Dante",["Zach Galligan","Phoebe Cates"],["Comedy","Horror"],"Warner Bros.","PG",106,["monster"]);
+f("Tremors",1990,"Ron Underwood",["Kevin Bacon","Fred Ward"],["Comedy","Horror","Sci-Fi"],"Universal","PG-13",96,["monster"]);
+f("It",2017,"Andy Muschietti",["Jaeden Martell","Bill Skarsgård"],["Horror"],"Warner Bros.","R",135,["monster"]);
+f("A Nightmare on Elm Street",1984,"Wes Craven",["Heather Langenkamp","Robert Englund"],["Horror"],"Warner Bros.","R",91,["monster","dream"]);
+f("The Conjuring",2013,"James Wan",["Vera Farmiga","Patrick Wilson"],["Horror","Mystery"],"Warner Bros.","R",112,["monster","family"]);
+
+// --- Time bending
+f("Back to the Future",1985,"Robert Zemeckis",["Michael J. Fox","Christopher Lloyd"],["Sci-Fi","Adventure","Comedy"],"Universal","PG",116,["time","family"]);
+f("Groundhog Day",1993,"Harold Ramis",["Bill Murray","Andie MacDowell"],["Comedy","Fantasy","Romance"],"Sony","PG",101,["time"]);
+f("The Terminator",1984,"James Cameron",["Arnold Schwarzenegger","Linda Hamilton"],["Sci-Fi","Action"],"MGM/UA","R",107,["time"]);
+f("Terminator 2: Judgment Day",1991,"James Cameron",["Arnold Schwarzenegger","Linda Hamilton"],["Sci-Fi","Action"],"Sony","R",137,["time","family"]);
+f("Edge of Tomorrow",2014,"Doug Liman",["Tom Cruise","Emily Blunt"],["Sci-Fi","Action"],"Warner Bros.","PG-13",113,["time"]);
+f("Looper",2012,"Rian Johnson",["Joseph Gordon-Levitt","Bruce Willis"],["Sci-Fi","Action","Thriller"],"Sony","R",119,["time","twist"]);
+f("12 Monkeys",1995,"Terry Gilliam",["Bruce Willis","Brad Pitt"],["Sci-Fi","Thriller","Mystery"],"Universal","R",129,["time","twist"]);
+f("About Time",2013,"Richard Curtis",["Domhnall Gleeson","Rachel McAdams"],["Romance","Comedy","Fantasy"],"Universal","R",123,["time","family"]);
+f("The Curious Case of Benjamin Button",2008,"David Fincher",["Brad Pitt","Cate Blanchett"],["Drama","Fantasy","Romance"],"Paramount","PG-13",166,["time"]);
+f("Speed",1994,"Jan de Bont",["Keanu Reeves","Sandra Bullock"],["Action","Thriller"],"20th Century","R",116,["time"]);
+f("Dunkirk",2017,"Christopher Nolan",["Fionn Whitehead","Tom Hardy"],["War","Drama","Thriller"],"Warner Bros.","PG-13",106,["time"]);
+f("Tenet",2020,"Christopher Nolan",["John David Washington","Robert Pattinson"],["Action","Sci-Fi","Thriller"],"Warner Bros.","PG-13",150,["time"]);
+f("Source Code",2011,"Duncan Jones",["Jake Gyllenhaal","Michelle Monaghan"],["Sci-Fi","Thriller"],"Lionsgate","PG-13",93,["time","twist"]);
+f("Midnight in Paris",2011,"Woody Allen",["Owen Wilson","Rachel McAdams"],["Comedy","Fantasy","Romance"],"Sony","PG-13",94,["time","dream"]);
+
+// --- Family
+f("The Godfather",1972,"Francis Ford Coppola",["Marlon Brando","Al Pacino"],["Crime","Drama"],"Paramount","R",175,["family","greed"]);
+f("Finding Nemo",2003,"Andrew Stanton",["Albert Brooks","Ellen DeGeneres"],["Animation","Adventure","Family"],"Disney","G",100,["family"]);
+f("Lilo & Stitch",2002,"Chris Sanders & Dean DeBlois",["Daveigh Chase","Chris Sanders"],["Animation","Family","Sci-Fi"],"Disney","PG",85,["family"]);
+f("The Lion King",1994,"Roger Allers & Rob Minkoff",["Matthew Broderick","Jeremy Irons"],["Animation","Family","Drama"],"Disney","G",88,["family"]);
+f("Toy Story",1995,"John Lasseter",["Tom Hanks","Tim Allen"],["Animation","Comedy","Family"],"Disney","G",81,["family"]);
+f("Guardians of the Galaxy",2014,"James Gunn",["Chris Pratt","Zoe Saldaña"],["Action","Sci-Fi","Comedy"],"Disney","PG-13",121,["family"]);
+f("The Fast and the Furious",2001,"Rob Cohen",["Paul Walker","Vin Diesel"],["Action","Crime"],"Universal","PG-13",106,["family"]);
+f("Stand by Me",1986,"Rob Reiner",["Wil Wheaton","River Phoenix"],["Drama","Adventure"],"Sony","R",89,["family"]);
+f("The Breakfast Club",1985,"John Hughes",["Emilio Estevez","Molly Ringwald"],["Comedy","Drama"],"Universal","R",97,["family"]);
+f("E.T. the Extra-Terrestrial",1982,"Steven Spielberg",["Henry Thomas","Drew Barrymore"],["Sci-Fi","Family","Adventure"],"Universal","PG",115,["family","alone"]);
+f("Coco",2017,"Lee Unkrich",["Anthony Gonzalez","Gael García Bernal"],["Animation","Family","Fantasy"],"Disney","PG",105,["family"]);
+f("Little Women",2019,"Greta Gerwig",["Saoirse Ronan","Emma Watson"],["Drama","Romance"],"Sony","PG",135,["family"]);
+f("The Incredibles",2004,"Brad Bird",["Craig T. Nelson","Holly Hunter"],["Animation","Action","Family"],"Disney","PG",115,["family"]);
+f("Mrs. Doubtfire",1993,"Chris Columbus",["Robin Williams","Sally Field"],["Comedy","Family"],"20th Century","PG-13",125,["family"]);
+f("Frozen",2013,"Chris Buck & Jennifer Lee",["Kristen Bell","Idina Menzel"],["Animation","Family","Musical"],"Disney","PG",102,["family"]);
+
+// --- Dreams & simulated worlds
+f("The Matrix",1999,"The Wachowskis",["Keanu Reeves","Laurence Fishburne"],["Sci-Fi","Action"],"Warner Bros.","R",136,["dream"]);
+f("Total Recall",1990,"Paul Verhoeven",["Arnold Schwarzenegger","Sharon Stone"],["Sci-Fi","Action"],"Sony","R",113,["dream","twist"]);
+f("The Truman Show",1998,"Peter Weir",["Jim Carrey","Ed Harris"],["Comedy","Drama","Sci-Fi"],"Paramount","PG",103,["dream"]);
+f("Eternal Sunshine of the Spotless Mind",2004,"Michel Gondry",["Jim Carrey","Kate Winslet"],["Drama","Romance","Sci-Fi"],"Universal","R",108,["dream"]);
+f("The Wizard of Oz",1939,"Victor Fleming",["Judy Garland","Ray Bolger"],["Fantasy","Adventure","Family"],"MGM/UA","G",102,["dream"]);
+f("Pan's Labyrinth",2006,"Guillermo del Toro",["Ivana Baquero","Sergi López"],["Fantasy","Drama","War"],"Other","R",118,["dream"]);
+f("Inside Out",2015,"Pete Docter",["Amy Poehler","Phyllis Smith"],["Animation","Comedy","Family"],"Disney","PG",95,["dream","family"]);
+f("Avatar",2009,"James Cameron",["Sam Worthington","Zoe Saldaña"],["Sci-Fi","Action","Adventure"],"20th Century","PG-13",162,["dream"]);
+f("Ready Player One",2018,"Steven Spielberg",["Tye Sheridan","Olivia Cooke"],["Sci-Fi","Adventure"],"Warner Bros.","PG-13",140,["dream"]);
+f("Tron",1982,"Steven Lisberger",["Jeff Bridges","Bruce Boxleitner"],["Sci-Fi","Adventure"],"Disney","PG",96,["dream"]);
+f("La La Land",2016,"Damien Chazelle",["Ryan Gosling","Emma Stone"],["Romance","Drama","Musical"],"Lionsgate","PG-13",128,["dream"]);
+f("Barbie",2023,"Greta Gerwig",["Margot Robbie","Ryan Gosling"],["Comedy","Fantasy"],"Warner Bros.","PG-13",114,["dream"]);
+
+// --- Ambition & greed
+f("Wall Street",1987,"Oliver Stone",["Michael Douglas","Charlie Sheen"],["Drama","Crime"],"20th Century","R",126,["greed"]);
+f("The Wolf of Wall Street",2013,"Martin Scorsese",["Leonardo DiCaprio","Jonah Hill"],["Comedy","Crime","Biography"],"Paramount","R",180,["greed"]);
+f("Citizen Kane",1941,"Orson Welles",["Orson Welles","Joseph Cotten"],["Drama","Mystery"],"Other","PG",119,["greed"]);
+f("Scarface",1983,"Brian De Palma",["Al Pacino","Michelle Pfeiffer"],["Crime","Drama"],"Universal","R",170,["greed"]);
+f("There Will Be Blood",2007,"Paul Thomas Anderson",["Daniel Day-Lewis","Paul Dano"],["Drama"],"Paramount","R",158,["greed"]);
+f("Goodfellas",1990,"Martin Scorsese",["Ray Liotta","Robert De Niro"],["Crime","Drama","Biography"],"Warner Bros.","R",145,["greed"]);
+f("The Social Network",2010,"David Fincher",["Jesse Eisenberg","Andrew Garfield"],["Drama","Biography"],"Sony","PG-13",120,["greed"]);
+f("Whiplash",2014,"Damien Chazelle",["Miles Teller","J.K. Simmons"],["Drama","Music"],"Sony","R",106,["greed"]);
+f("Oppenheimer",2023,"Christopher Nolan",["Cillian Murphy","Emily Blunt"],["Drama","History","Biography"],"Universal","R",180,["greed"]);
+f("The Great Gatsby",2013,"Baz Luhrmann",["Leonardo DiCaprio","Tobey Maguire"],["Drama","Romance"],"Warner Bros.","PG-13",143,["greed"]);
+f("Casino",1995,"Martin Scorsese",["Robert De Niro","Sharon Stone"],["Crime","Drama"],"Universal","R",178,["greed"]);
+f("The Devil Wears Prada",2006,"David Frankel",["Anne Hathaway","Meryl Streep"],["Comedy","Drama"],"20th Century","PG-13",109,["greed"]);
+
+// --- Decoys (fit no theme, but fair game to guess)
+f("Titanic",1997,"James Cameron",["Leonardo DiCaprio","Kate Winslet"],["Romance","Drama"],"Paramount","PG-13",194,[]);
+f("Pulp Fiction",1994,"Quentin Tarantino",["John Travolta","Samuel L. Jackson"],["Crime","Drama"],"Miramax","R",154,[]);
+f("The Dark Knight",2008,"Christopher Nolan",["Christian Bale","Heath Ledger"],["Action","Crime","Drama"],"Warner Bros.","PG-13",152,[]);
+f("Top Gun",1986,"Tony Scott",["Tom Cruise","Kelly McGillis"],["Action","Drama"],"Paramount","PG",109,[]);
+f("Casablanca",1942,"Michael Curtiz",["Humphrey Bogart","Ingrid Bergman"],["Drama","Romance","War"],"Warner Bros.","PG",102,[]);
+f("Saving Private Ryan",1998,"Steven Spielberg",["Tom Hanks","Matt Damon"],["War","Drama"],"DreamWorks","R",169,[]);
+
+/* ============================================================ */
+const MAX_GUESSES = 10;
+const COLS = ["Year","Genre","Director","Stars","Studio","Rating","Runtime","Theme"];
+const $ = id => document.getElementById(id);
+const sorted = FILMS.slice().sort((a, b) => a.title.localeCompare(b.title));
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, "");
+
+/* ---- seeded random ---- */
+function hash(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function pickGame(seedStr) {
+  const r = rng(hash(seedStr));
+  const ids = Object.keys(THEMES);
+  const theme = ids[Math.floor(r() * ids.length)];
+  const pool = FILMS.filter(x => x.themes.includes(theme));
+  return { theme, answer: pool[Math.floor(r() * pool.length)].title, seed: seedStr };
+}
+const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+
+/* ---- safe storage ---- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+
+/* ---- state ---- */
+let game, guesses, done, daily;
+
+function startGame(seed, isDaily) {
+  daily = isDaily;
+  game = pickGame(seed);
+  guesses = []; done = null;
+  if (isDaily) {
+    const saved = store.get("reelle.daily", null);
+    if (saved && saved.seed === seed) { guesses = saved.guesses; done = saved.done; }
+  }
+  $("rows").innerHTML = "";
+  $("input").value = "";
+  $("input").disabled = false;
+  $("modeLabel").textContent = isDaily ? "Today's theme" : "Random theme";
+  guesses.forEach(t => renderRow(t, false));
+  refresh();
+  if (done) showEnd(false);
+}
+
+const target = () => FILMS.find(x => x.title === game.answer);
+
+/* ---- comparison ---- */
+function compare(g, t) {
+  const arrow = (a, b) => a === b ? "" : (b > a ? " ↑" : " ↓");
+  const setRel = (a, b) => { const n = a.filter(x => b.includes(x)).length; return n === 0 ? "bad" : (n === a.length && n === b.length ? "good" : "part"); };
+  const common = g.stars.filter(x => t.stars.includes(x));
+  const starState = common.length === 0 ? "bad" : (common.length === g.stars.length && common.length === t.stars.length ? "good" : "part");
+  const fits = g.themes.includes(game.theme);
+  return [
+    { state: g.year === t.year ? "good" : Math.abs(g.year - t.year) <= 5 ? "part" : "bad", html: `${g.year}<span class="arrow">${arrow(g.year, t.year)}</span>` },
+    { state: setRel(g.genres, t.genres), html: g.genres.join(", ") },
+    { state: g.director === t.director ? "good" : (g.director.split(/ & /).some(d => t.director.split(/ & /).includes(d)) ? "part" : "bad"), html: g.director },
+    { state: starState, html: g.stars.map(s => common.includes(s) ? `<b class="m">${s}</b>` : s).join("<br>") },
+    { state: g.studio === t.studio ? "good" : "bad", html: g.studio },
+    { state: g.rating === t.rating ? "good" : "bad", html: g.rating },
+    { state: g.runtime === t.runtime ? "good" : Math.abs(g.runtime - t.runtime) <= 15 ? "part" : "bad", html: `${g.runtime} min<span class="arrow">${arrow(g.runtime, t.runtime)}</span>` },
+    { state: fits ? "good" : "bad", html: fits ? "✔ Fits" : "✘ No" }
+  ];
+}
+
+function renderRow(title, animate = true) {
+  const g = FILMS.find(x => x.title === title), cells = compare(g, target());
+  const row = document.createElement("div");
+  row.className = "grid";
+  let html = `<div class="cell title">${g.title}<small>${g.year}</small></div>`;
+  cells.forEach((c, i) => html += `<div class="cell ${c.state}" style="animation-delay:${animate ? i * 0.12 : 0}s">${c.html}</div>`);
+  row.innerHTML = html;
+  $("rows").prepend(row);
+}
+
+/* ---- hints & status ---- */
+function refresh() {
+  const th = THEMES[game.theme], n = guesses.length, over = !!done;
+  $("clue").textContent = th.clues[0];
+  const c2 = over || n >= 4, c3 = over || n >= 7;
+  $("chips").innerHTML =
+    `<span class="chip on">Clue 1: always on</span>` +
+    `<span class="chip ${c2 ? "on" : ""}">${c2 ? "Clue 2: " + th.clues[1] : "Clue 2 unlocks after 4 guesses"}</span>` +
+    `<span class="chip ${c3 ? "on" : ""}">${c3 ? "Theme: " + th.name : "Theme name unlocks after 7 guesses"}</span>`;
+  $("count").textContent = `Guess ${Math.min(n + 1, MAX_GUESSES)} of ${MAX_GUESSES}`;
+  $("status").textContent = over ? (done === "win" ? "Solved!" : "Out of guesses") : "";
+  $("input").disabled = over;
+}
+
+/* ---- guessing ---- */
+function guess(title) {
+  if (done || guesses.includes(title)) return;
+  guesses.push(title);
+  renderRow(title);
+  if (title === game.answer) done = "win";
+  else if (guesses.length >= MAX_GUESSES) done = "lose";
+  if (daily) store.set("reelle.daily", { seed: game.seed, guesses, done });
+  refresh();
+  if (done) { recordStats(); setTimeout(() => showEnd(true), 1100); }
+}
+
+/* ---- autocomplete ---- */
+let matches = [], sel = -1;
+function updateList() {
+  const q = norm($("input").value.trim());
+  if (!q) { matches = []; } else {
+    matches = sorted.filter(x => !guesses.includes(x.title) && norm(x.title).includes(q))
+      .sort((a, b) => (norm(a.title).startsWith(q) ? 0 : 1) - (norm(b.title).startsWith(q) ? 0 : 1)).slice(0, 8);
+  }
+  sel = matches.length ? 0 : -1;
+  drawList();
+}
+function drawList() {
+  const ul = $("list");
+  ul.hidden = !matches.length;
+  ul.innerHTML = matches.map((m, i) => `<li data-i="${i}" class="${i === sel ? "sel" : ""}"><span>${m.title}</span><small>${m.year}</small></li>`).join("");
+}
+function choose(i) {
+  if (!matches[i]) return;
+  const t = matches[i].title;
+  $("input").value = ""; matches = []; drawList();
+  guess(t);
+}
+$("input").addEventListener("input", updateList);
+$("input").addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { sel = Math.min(sel + 1, matches.length - 1); drawList(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { sel = Math.max(sel - 1, 0); drawList(); e.preventDefault(); }
+  else if (e.key === "Enter") { choose(sel); }
+  else if (e.key === "Escape") { matches = []; drawList(); }
+});
+$("list").addEventListener("mousedown", e => { const li = e.target.closest("li"); if (li) { e.preventDefault(); choose(+li.dataset.i); } });
+document.addEventListener("click", e => { if (!e.target.closest(".search")) { matches = []; drawList(); } });
+
+/* ---- stats ---- */
+function recordStats() {
+  if (!daily) return;
+  const s = store.get("reelle.stats", { played: 0, won: 0, streak: 0, best: 0, dist: Array(MAX_GUESSES + 1).fill(0), last: "" });
+  if (s.last === game.seed) return;
+  s.last = game.seed; s.played++;
+  if (done === "win") { s.won++; s.streak++; s.best = Math.max(s.best, s.streak); s.dist[guesses.length]++; } else s.streak = 0;
+  store.set("reelle.stats", s);
+}
+function showStats() {
+  const s = store.get("reelle.stats", { played: 0, won: 0, streak: 0, best: 0, dist: [] });
+  $("statsBody").innerHTML = `<p>Daily games played: <b>${s.played}</b><br>Won: <b>${s.won}</b> (${s.played ? Math.round(100 * s.won / s.played) : 0}%)<br>Current streak: <b>${s.streak}</b> · Best: <b>${s.best}</b></p><p class="legend">Only the daily game counts toward stats. Saved in this browser.</p>`;
+  $("dlgStats").showModal();
+}
+
+/* ---- end screen ---- */
+function shareText() {
+  const t = target(), th = THEMES[game.theme];
+  const lines = guesses.map(title => compare(FILMS.find(x => x.title === title), t).map(c => ({ good: "🟩", part: "🟨", bad: "⬛" }[c.state])).join(""));
+  return `Reelle 🎬 ${daily ? game.seed : "random"}\nTheme: ${th.name}\n${done === "win" ? guesses.length : "X"}/${MAX_GUESSES}\n${lines.join("\n")}`;
+}
+function showEnd(first) {
+  const t = target();
+  $("endTitle").textContent = done === "win" ? "You got it!" : "Not this time";
+  $("endBody").innerHTML = `<p>The film was <b>${t.title}</b> (${t.year}), directed by ${t.director}, starring ${t.stars.join(" and ")}.</p><p>Theme: <b>${THEMES[game.theme].name}</b></p>`;
+  $("endShare").textContent = shareText();
+  $("dlgEnd").showModal();
+}
+$("btnCopy").onclick = () => {
+  const txt = $("endShare").textContent;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
+    () => $("btnCopy").textContent = "Copied!", () => $("btnCopy").textContent = "Select & copy manually");
+};
+$("btnAgain").onclick = () => { $("dlgEnd").close(); $("btnCopy").textContent = "Copy result"; newRandom(); };
+
+function newRandom() { startGame("rnd-" + Date.now() + "-" + Math.floor(Math.random() * 1e6), false); $("input").focus(); }
+$("btnNew").onclick = newRandom;
+$("btnHelp").onclick = () => $("dlgHelp").showModal();
+$("btnStats").onclick = showStats;
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest("dialog").close());
+
+/* ---- boot ---- */
+$("head").innerHTML = `<div>Film</div>` + COLS.map(c => `<div>${c}</div>`).join("");
+startGame(todayKey(), true);
+if (!store.get("reelle.seenHelp", false)) { store.set("reelle.seenHelp", true); $("dlgHelp").showModal(); }
+</script>
+</body>
+</html>
