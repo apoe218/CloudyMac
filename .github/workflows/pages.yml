@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main, claude/personal-website-design-oj5gbk]
+  schedule:
+    # Rebuild the H-Town Observer every morning (11:30 UTC = 6:30am CDT / 5:30am CST)
+    - cron: "30 11 * * *"
   workflow_dispatch:
 
 permissions:
@@ -22,6 +25,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the H-Town Observer
+        run: python3 observer/build.py
       - uses: actions/configure-pages@v5
         with:
           enablement: true
