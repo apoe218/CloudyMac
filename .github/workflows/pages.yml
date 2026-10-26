@@ -30,6 +30,13 @@ jobs:
           python-version: "3.12"
       - name: Build the H-Town Observer
         run: python3 observer/build.py
+      - name: Save today's edition as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: observer-edition
+          path: |
+            observer/index.html
+            observer/print.html
       - uses: actions/configure-pages@v5
         with:
           enablement: true
@@ -38,3 +45,14 @@ jobs:
           path: .
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify the live page matches this build
+        run: |
+          built=$(grep -o 'Updated [0-9:]* [AP]M CT' observer/index.html | head -1)
+          echo "Built:  $built"
+          for i in 1 2 3 4 5 6 7 8; do
+            live=$(curl -s "${{ steps.deployment.outputs.page_url }}observer/?v=$RANDOM$i" | grep -o 'Updated [0-9:]* [AP]M CT' | head -1)
+            echo "Live:   $live (try $i)"
+            [ "$live" = "$built" ] && { echo "::notice::Live page matches build ($built)"; exit 0; }
+            sleep 15
+          done
+          echo "::warning::Live page shows '$live' but this build is '$built'. Pages may be serving an older deployment; check Settings > Pages."
