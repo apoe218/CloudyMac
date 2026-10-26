@@ -18,6 +18,9 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import quote
 
+sys.path.insert(0, str(Path(__file__).parent))
+from crossword import render as crossword_render  # noqa: E402
+
 try:
     from zoneinfo import ZoneInfo
     CT = ZoneInfo("America/Chicago")
@@ -656,6 +659,20 @@ body.print .tbl tr.me td{background:#d9d9d9}body.print .aggie-tbl tr.me td{backg
 body.print .res.w,body.print .res.l,body.print .res.d{color:#111}
 body.print .fx{font-size:calc(11px*var(--s,1));padding:4px 0}body.print .sub{font-size:calc(9px*var(--s,1));margin-top:8px}
 body.print .dateline{font-size:calc(9.5px*var(--s,1));padding:4px 0}body.print .topline{font-size:calc(8.5px*var(--s,1))}body.print .foot{font-size:calc(8.5px*var(--s,1))}
+body.print .xw{display:grid;grid-template-columns:repeat(15,.39in);grid-auto-rows:.39in;width:max-content;margin:.12in auto .1in;border:2px solid #111}
+body.print .xw div{border:1px solid #111;position:relative;background:#fff}
+body.print .xw div.b{background:#222}
+body.print .xw i{position:absolute;top:1px;left:2px;font:700 9px/1 var(--sans);font-style:normal}
+body.print .clues{display:grid;grid-template-columns:1fr 1fr;gap:.25in;font-size:11px;line-height:1.3}
+body.print .clues h4{margin:0 0 3px;font:800 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;border-bottom:2px solid #111}
+body.print .clues ol{list-style:none;margin:0;padding:0;columns:1}
+body.print .clues li{margin:0 0 2px}body.print .clues li b{font-family:var(--sans)}
+body.print .clues li span{color:var(--muted);font-size:9px}
+body.print .yest{position:absolute;right:.35in;bottom:.1in;text-align:right;font:8px var(--sans);color:var(--muted)}
+body.print .yest span{display:block;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+body.print .xwmini{display:grid;grid-template-columns:repeat(15,5px);grid-auto-rows:5px;margin-left:auto;width:max-content;border:1px solid #777}
+body.print .xwmini div{font:4px/5px var(--sans);text-align:center;color:#111}body.print .xwmini div.b{background:#555}
+body.print .page{position:relative}
 @page{size:letter;margin:0}
 @media print{
   .toolbar{display:none}
@@ -743,29 +760,38 @@ def build():
       if(!rm)break;rm.remove();
     }
   }
-  function all(){document.querySelectorAll('.sheet').forEach(fit)}
+  function all(){document.querySelectorAll('.sheet:not(.nofit)').forEach(fit)}
   window.addEventListener('load',all);
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(all);
   window.addEventListener('beforeprint',all);
 })();
 </script>"""
-        toolbar = ('<nav class="toolbar"><span>The H-Town Observer &middot; print edition (2 pages, greyscale)</span>'
+        toolbar = ('<nav class="toolbar"><span>The H-Town Observer &middot; print edition (3 pages, greyscale)</span>'
                    '<a href="index.html">&larr; Web edition</a><button onclick="window.print()">Print this edition</button></nav>')
         p1 = f"""<div class="page"><div class="sheet">
-<div class="topline"><span>Houston, Texas</span><span>Weather &middot; Aggies &middot; The Reds &middot; The World</span><span>Page 1 of 2 &middot; Sports inside</span></div>
+<div class="topline"><span>Houston, Texas</span><span>Weather &middot; Aggies &middot; The Reds &middot; The World</span><span>Page 1 of 3 &middot; Sports &amp; puzzle inside</span></div>
 <header class="mast"><h1>The H-Town Observer</h1>
 <div class="tag">&ldquo;All the weather, all the Aggies, all the Reds &mdash; fit to print.&rdquo;</div></header>
 <div class="dateline"><span>{esc(edition)}</span><span>{now_line}</span><span>Updated {esc(updated)}</span></div>
 <div class="grid"><div class="col">{weather}</div><div class="col">{houston_sec}</div><div class="col">{world_sec}</div></div>
 {foot}</div></div>"""
         p2 = f"""<div class="page"><div class="sheet">
-<div class="topline"><span>The H-Town Observer</span><span>The Sports Page</span><span>Page 2 of 2</span></div>
+<div class="topline"><span>The H-Town Observer</span><span>The Sports Page</span><span>Page 2 of 3</span></div>
 <header class="mast mini"><h1>Sports &amp; Scoreboard</h1>
 <div class="tag">Texas A&amp;M &middot; the SEC &middot; Liverpool &middot; the Premier League &amp; Europe</div></header>
 <div class="dateline"><span>{esc(edition)}</span><span>Gig &rsquo;Em &amp; YNWA</span><span>Updated {esc(updated)}</span></div>
 <div class="grid"><div class="col">{aggie_top}{aggie_rep}</div><div class="col">{lfc_top}{fb_rep}</div><div class="col">{lfc_rep}{sec_rep}</div></div>
 {foot}</div></div>"""
-        return f'{head}<body class="print">{toolbar}{p1}{p2}{fit}</body></html>'
+        xw, yesterday, _ = crossword_render(now.date())
+        p3 = f"""<div class="page"><div class="sheet nofit">
+<div class="topline"><span>The H-Town Observer</span><span>The Puzzle Page</span><span>Page 3 of 3</span></div>
+<header class="mast mini"><h1>The Crossword</h1>
+<div class="tag">Medium &middot; Houston, Texas, football, weather and a little of everything</div></header>
+<div class="dateline"><span>{esc(edition)}</span><span>Pens at the ready</span><span>Answers: tomorrow&rsquo;s paper</span></div>
+{xw}
+<div class="yest"><span>Yesterday&rsquo;s solution</span>{yesterday}</div>
+</div></div>"""
+        return f'{head}<body class="print">{toolbar}{p1}{p2}{p3}{fit}</body></html>'
 
     toolbar = ('<nav class="toolbar"><span>The H-Town Observer</span><a href="print.html">Print edition</a>'
                '<button onclick="window.print()">Print</button></nav>')
