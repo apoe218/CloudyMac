@@ -1,309 +1,22 @@
 """Daily crossword for the H-Town Observer print edition.
 
-A 15x15 freeform puzzle generated from the clue bank below, seeded by the date so
-every morning is different and yesterday's solution can be regenerated exactly.
-Themed entries (Houston/Texas, Aggies/college football, Liverpool/soccer, weather,
-space) are favoured; the rest is general knowledge for crossing letters.
+A 15x15 freeform puzzle generated from wordbank.json (everyday words with dictionary
+definitions as clues, pulled from the free Datamuse/Wiktionary data), seeded by the date
+so every morning is different and yesterday's solution can be regenerated exactly.
 """
 import html
+import json
 import random
 import re
 from datetime import date
+from pathlib import Path
 
 SIZE = 15
 
-# CATEGORY: H=Houston/Texas, A=Aggies/CFB, L=Liverpool/soccer, W=weather/space, G=general
-BANK = """
-H|ASTRODOME|Houston's "Eighth Wonder of the World," opened in 1965
-H|ASTROS|Houston's American League baseball club
-H|TEXANS|NFL team that plays at NRG Stadium
-H|ROCKETS|Houston NBA team named for the local space industry
-H|DYNAMO|Houston's MLS club
-H|BAYOU|Slow-moving Gulf Coast waterway
-H|BUFFALO|___ Bayou, which winds through downtown Houston
-H|RODEO|Annual Houston Livestock Show and ___
-H|NASA|Agency running Johnson Space Center
-H|GALVESTON|Island city south of Houston
-H|KATY|Suburb west of Houston along I-10
-H|SUGARLAND|Fort Bend County city with a sweet name
-H|TEXAS|Lone Star State
-H|ALAMO|San Antonio mission remembered in a battle cry
-H|AUSTIN|Texas capital
-H|DALLAS|Cowboys' home city
-H|BRAZOS|River that gives College Station's county its name
-H|LONESTAR|___ State: Texas
-H|BLUEBONNET|Texas state flower
-H|ARMADILLO|Armored roadside critter of Texas
-H|BRISKET|Smoked Texas barbecue staple
-H|KOLACHE|Czech pastry beloved in Texas
-H|FAJITA|Sizzling Tex-Mex platter
-H|QUESO|Melted cheese dip, in Tex-Mex
-H|TEXMEX|Cuisine of nachos and enchiladas
-H|JALAPENO|Pepper often stuffed with cheese
-H|LONGHORN|Texas cattle breed with a famous spread of horns
-H|MESQUITE|Wood used for smoking meats in Texas
-H|BEYONCE|Houston-born superstar
-H|NRG|___ Stadium, home of the Texans
-H|HOUSTON|Space City, USA
-H|SAM|Houston's namesake, ___ Houston
-H|HERMANN|___ Park, home of the Houston Zoo
-H|MONTROSE|Eclectic Houston neighborhood near the Museum District
-H|HEIGHTS|The ___, historic Houston neighborhood
-H|SPACE|___ City, Houston's nickname
-H|PECAN|Texas state tree's nut
-H|CACTUS|Prickly desert plant
-H|COWBOY|Ranch hand on horseback
-H|RANCH|Large Texas spread
-H|HOWDY|Texas greeting
-A|AGGIES|Texas A&M athletes
-A|GIGEM|Aggie cheer: "___ 'Em!"
-A|WHOOP|Aggie exclamation
-A|REVEILLE|Texas A&M's collie mascot
-A|KYLE|___ Field, Aggie home gridiron
-A|CORPS|Texas A&M's ___ of Cadets
-A|MAROON|Aggie color
-A|TWELFTHMAN|Aggie tradition of the student body as the extra player
-A|YELL|What Aggie "leaders" lead
-A|SEC|Conference of the Aggies and Crimson Tide
-A|HEISMAN|Trophy for the nation's top college player
-A|MANZIEL|Aggie quarterback who won the 2012 Heisman
-A|BRYAN|Twin city of College Station
-A|BATTALION|Texas A&M's student newspaper, The ___
-A|TOUCHDOWN|Six-point score
-A|FIELDGOAL|Three-point kick between the uprights
-A|QUARTERBACK|Signal-caller
-A|PUNT|Fourth-down kick
-A|FUMBLE|Dropped ball that is still live
-A|BLITZ|Rush the passer with extra defenders
-A|GRIDIRON|Football field, in older parlance
-A|ENDZONE|Where six points are scored
-A|SAFETY|Two-point defensive score
-A|HUDDLE|Players' pre-snap gathering
-A|KICKOFF|Start of a half
-A|INTERCEPTION|Defensive "pick," formally
-A|SACK|QB takedown behind the line
-A|ROSE|___ Bowl, "Granddaddy of Them All"
-A|PLAYOFF|Postseason tournament
-A|TAILGATE|Parking-lot party before kickoff
-A|TACKLE|Bring a runner down
-A|SNAP|Center's start to a play
-A|CRIMSON|Alabama's color
-A|TIDE|Alabama's nickname: Crimson ___
-A|VOLS|Tennessee's nickname
-A|GATORS|Florida's team
-A|BULLDOGS|Georgia's team
-A|TIGERS|LSU's feline team
-A|RAZORBACKS|Arkansas team whose fans call the Hogs
-A|OKLAHOMA|Sooner State
-A|SOONERS|Oklahoma football team
-A|GEORGIA|Peach State
-A|AUBURN|Alabama school with Tigers
-A|OLE|___ Miss
-A|VANDERBILT|Nashville SEC school
-A|MIZZOU|Missouri, informally
-A|KENTUCKY|Bluegrass State
-A|COACH|Sideline strategist
-A|RIVALRY|Texas-Texas A&M, for decades
-A|HELMET|Gridiron headgear
-A|UPRIGHTS|Goalposts' vertical bars on a football field
-L|ANFIELD|Liverpool's home ground
-L|KOP|Famous end of Anfield
-L|SHANKLY|Bill, legendary Liverpool manager of the 1960s and '70s
-L|DALGLISH|"King Kenny" of Liverpool
-L|GERRARD|Steven, long-time Liverpool captain
-L|KLOPP|Jurgen who won the 2019 Champions League with Liverpool
-L|SALAH|Egyptian forward who joined Liverpool in 2017
-L|VANDIJK|Dutch defender at Liverpool
-L|MERSEY|River beside Liverpool
-L|MERSEYSIDE|Liverpool's metropolitan county
-L|ISTANBUL|City of Liverpool's 2005 Champions League comeback
-L|BEATLES|Liverpool's Fab Four
-L|YNWA|Anfield anthem, in initials
-L|LIVERBIRD|Mythical bird on Liverpool's crest
-L|EVERTON|Liverpool's neighbors across Stanley Park
-L|DERBY|Match between local rivals
-L|HATTRICK|Three goals in one game
-L|OFFSIDE|Flag-raising offense for a lurking forward
-L|GOALIE|Keeper
-L|STRIKER|Forward who scores
-L|WINGER|Wide attacker
-L|PENALTY|Spot kick awarded for a foul in the box
-L|CORNER|Kick from the arc
-L|NUTMEG|Pass the ball through a defender's legs
-L|TREBLE|Three trophies in a season
-L|WEMBLEY|London stadium hosting FA Cup finals
-L|PITCH|Soccer field, in Britain
-L|FIXTURE|Scheduled match
-L|ARSENAL|Gunners of North London
-L|CHELSEA|Blues from Stamford Bridge
-L|SPURS|Tottenham's nickname
-L|UEFA|Governing body of European soccer
-L|FIFA|World soccer's governing body
-L|ANTHEM|Stirring song played before Champions League kickoff
-L|MADRID|Spanish capital with a famous Real club
-L|REAL|___ Madrid
-L|BAYERN|Munich Bundesliga giants
-L|JUVENTUS|Turin's "Old Lady"
-L|BARCELONA|Catalan club with Camp Nou
-L|STOPPAGE|___ time, added minutes
-L|CAPTAIN|Armband wearer
-L|REFEREE|Whistle-blower
-L|WHISTLE|What the ref blows
-L|PREMIER|___ League
-L|CHAMPIONS|Winners of the league, e.g.
-L|SCARF|Supporter's woolen accessory
-L|RELEGATION|Fate of clubs finishing at the bottom
-W|HUMIDITY|What makes Houston summers feel sticky
-W|HURRICANE|Gulf storm named from an annual list
-W|HARVEY|2017 hurricane that flooded Houston
-W|DROUGHT|Dry spell
-W|FRONT|Cold ___ (welcome relief in Houston)
-W|SQUALL|Sudden gust and storm
-W|CUMULUS|Puffy fair-weather cloud
-W|BAROMETER|Pressure gauge
-W|ISOBAR|Line of equal pressure on a map
-W|TORNADO|Twister
-W|MONSOON|Seasonal rain wind
-W|DEWPOINT|Temperature at which air condenses
-W|FLOOD|Bayou overflow
-W|TROPICAL|___ storm
-W|BREEZE|Gentle wind
-W|HAIL|Frozen pellets from the sky
-W|SLEET|Icy rain
-W|RAINBOW|Arc after a shower
-W|NIMBUS|Rain cloud
-W|FORECAST|Weatherman's prediction
-W|ORBIT|Path around a planet
-W|APOLLO|NASA program that put 12 people on the Moon
-W|GEMINI|Two-person NASA capsule program
-W|COMET|Icy visitor with a tail
-W|NEBULA|Interstellar cloud
-W|GALAXY|Milky Way, for one
-W|LUNAR|Of the Moon
-W|MARS|Red Planet
-W|SATURN|Ringed giant
-W|SHUTTLE|Reusable NASA spacecraft retired in 2011
-W|ASTRONAUT|Space traveler
-W|LAUNCH|Liftoff
-W|CAPSULE|Small spacecraft module
-W|ROVER|Mars explorer
-W|MISSION|___ Control in Houston
-W|TELESCOPE|Hubble, for one
-W|METEOR|Shooting star
-W|ECLIPSE|Sun-blocking event
-G|CAIRO|Egypt's capital
-G|LIMA|Peru's capital
-G|OSLO|Norway's capital
-G|ROME|Capital on the Tiber
-G|PARIS|City of Light
-G|TOKYO|Japan's capital
-G|NILE|Egyptian river
-G|DANUBE|River through Vienna and Budapest
-G|AMAZON|Rainforest river
-G|ALPS|European mountain range
-G|KENYA|Nairobi's country
-G|CANADA|Ottawa's country
-G|BRAZIL|Samba nation
-G|SPAIN|Madrid's country
-G|ITALY|Boot-shaped nation
-G|EGYPT|Land of the pyramids
-G|PERU|Machu Picchu's land
-G|CHILE|Long country along the Andes
-G|GHANA|Accra's country
-G|JAPAN|Land of the Rising Sun
-G|INDIA|Delhi's country
-G|ATLANTIC|Ocean east of the US
-G|PACIFIC|Largest ocean
-G|ARCTIC|Polar region in the far north
-G|SAHARA|Largest hot desert
-G|EVEREST|World's highest peak
-G|NAIROBI|Kenya's capital
-G|OTTAWA|Canada's capital
-G|BERLIN|German capital
-G|LONDON|Thames city
-G|VIENNA|Austrian capital
-G|DUBLIN|Irish capital
-G|LISBON|Portuguese capital
-G|ATHENS|Greek capital
-G|ARIA|Opera solo
-G|ERA|Time period
-G|ALOE|Soothing plant for sunburn
-G|OREO|Cookie with a twist-off top
-G|ATLAS|Book of maps
-G|IDEA|Brainstorm product
-G|ELITE|Select group
-G|OASIS|Desert watering hole
-G|ANTLER|Deer headgear
-G|TEAL|Blue-green
-G|SALSA|Dip or dance
-G|TACO|Tuesday special
-G|OPERA|"La Traviata," for one
-G|PIANO|88-key instrument
-G|VIOLIN|Strad, for one
-G|ORGAN|Church instrument
-G|CELLO|Bowed instrument bigger than a violin
-G|BANJO|Bluegrass string instrument
-G|GUITAR|Six-string instrument
-G|TENOR|High male voice
-G|ALTO|Voice between soprano and tenor
-G|RADIO|Dashboard device
-G|COFFEE|Morning cup
-G|LATTE|Espresso with steamed milk
-G|PASTA|Spaghetti, e.g.
-G|PIZZA|Pie with toppings
-G|BAGEL|Ring-shaped roll
-G|LEMON|Sour citrus fruit
-G|LIME|Green citrus fruit
-G|MANGO|Tropical fruit
-G|OLIVE|Martini garnish
-G|ONION|Layered veggie that makes you cry
-G|ESSAY|Written assignment
-G|STATE|Say formally
-G|TRAIN|Locomotive's string of cars
-G|RIVER|Flowing waterway
-G|ROUTE|Planned way
-G|STEAK|Grilled cut of beef
-G|TOAST|Browned bread
-G|SPICE|Cumin or paprika
-G|ANGLE|Fishing activity or point of view
-G|ENTER|Come in
-G|RESET|Start over on a device
-G|ISLAND|Land surrounded by water
-G|NOTION|Vague idea
-G|STORM|Rain-and-wind event
-G|ROAST|Oven-cooked meat
-G|TENNIS|Net game with a racket
-G|GOLF|Game of birdies and bogeys
-G|HOCKEY|Puck sport
-G|BASEBALL|Diamond sport
-G|MARATHON|26.2-mile race
-G|SPRINT|Short, fast race
-G|OLYMPICS|Quadrennial sports event
-G|TROPHY|Cup awarded to a winner
-G|STADIUM|Large sports venue
-G|ARENA|Indoor sports venue
-G|SEASON|Time of year, or what you do to a steak
-G|INSIDE|Not outdoors
-G|OUTSIDE|Not indoors
-G|AREA|Region
-G|OPEN|Not closed
-G|EAST|Direction of sunrise
-G|WEST|Direction of sunset
-G|NORTH|Compass heading, up on a map
-G|SOUTH|Compass heading, down on a map
-"""
-
-
 def load_bank():
-    seen, out = set(), []
-    for line in BANK.strip().splitlines():
-        cat, ans, clue = line.split("|", 2)
-        ans = re.sub(r"[^A-Z]", "", ans.upper())
-        if len(ans) < 3 or ans in seen:
-            continue
-        seen.add(ans)
-        out.append((cat, ans, clue.strip()))
-    return out
+    """(answer, clue) pairs built by refresh_wordbank.py from free dictionary data."""
+    rows = json.loads((Path(__file__).with_name("wordbank.json")).read_text(encoding="utf-8"))
+    return [(a, clue) for a, clue, _freq in rows if 3 <= len(a) <= SIZE]
 
 
 class Grid:
@@ -354,15 +67,15 @@ class Grid:
 
 def attempt(bank, rng):
     g = Grid()
-    themed = {"H": 1.2, "A": 1.2, "L": 1.2, "W": 0.7, "G": 0.0}
-    order = sorted(bank, key=lambda e: -(rng.random() + themed[e[0]] * 0.5))
-    longs = [e for e in order if len(e[1]) >= 9] or order
-    cat, w, clue = rng.choice(longs)
+    # a random pool per attempt keeps this fast and makes every puzzle different
+    order = rng.sample(bank, min(len(bank), 380))
+    longs = [e for e in order if len(e[0]) >= 9] or order
+    w, clue = rng.choice(longs)
     g.put(w, SIZE // 2 + rng.choice((-1, 0, 1)), (SIZE - len(w)) // 2, "A", clue)
     used = {w}
     while True:
         best, best_score = [], 0
-        for cat, w, clue in order:
+        for w, clue in order:
             if w in used:
                 continue
             for i, wc in enumerate(w):
@@ -372,7 +85,7 @@ def attempt(bank, rng):
                         k = g.fits(w, r, c, d)
                         if k < 1:
                             continue
-                        score = k * 3 + len(w) * 0.3 + themed[cat] + rng.random()
+                        score = k * 3 + len(w) * 0.3 + rng.random()
                         if score > best_score + 1e-9:
                             best, best_score = [(w, r, c, d, clue)], score
         if not best:
@@ -400,7 +113,7 @@ def runs_ok(g):
     return found == placed
 
 
-def generate(day, tries=40):
+def generate(day, tries=22):
     rng = random.Random(day.toordinal() * 7919)
     bank = load_bank()
     best, best_score = None, -1

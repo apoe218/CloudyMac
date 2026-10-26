@@ -668,10 +668,10 @@ body.print .clues h4{margin:0 0 3px;font:800 10px var(--sans);letter-spacing:.14
 body.print .clues ol{list-style:none;margin:0;padding:0;columns:1}
 body.print .clues li{margin:0 0 2px}body.print .clues li b{font-family:var(--sans)}
 body.print .clues li span{color:var(--muted);font-size:9px}
-body.print .yest{position:absolute;right:.35in;bottom:.1in;text-align:right;font:8px var(--sans);color:var(--muted)}
-body.print .yest span{display:block;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
-body.print .xwmini{display:grid;grid-template-columns:repeat(15,5px);grid-auto-rows:5px;margin-left:auto;width:max-content;border:1px solid #777}
-body.print .xwmini div{font:4px/5px var(--sans);text-align:center;color:#111}body.print .xwmini div.b{background:#555}
+body.print .yest{position:absolute;right:.35in;top:.5in;display:flex;align-items:flex-end;gap:5px;font:7px/1.2 var(--sans);color:var(--muted)}
+body.print .yest span{letter-spacing:.08em;text-transform:uppercase;text-align:right;width:.6in}
+body.print .xwmini{display:grid;grid-template-columns:repeat(15,4px);grid-auto-rows:4px;margin-left:auto;width:max-content;border:1px solid #777}
+body.print .xwmini div{font:3.2px/4px var(--sans);text-align:center;color:#111}body.print .xwmini div.b{background:#555}
 body.print .page{position:relative}
 @page{size:letter;margin:0}
 @media print{
@@ -786,7 +786,7 @@ def build():
         p3 = f"""<div class="page"><div class="sheet nofit">
 <div class="topline"><span>The H-Town Observer</span><span>The Puzzle Page</span><span>Page 3 of 3</span></div>
 <header class="mast mini"><h1>The Crossword</h1>
-<div class="tag">Medium &middot; Houston, Texas, football, weather and a little of everything</div></header>
+<div class="tag">Medium &middot; everyday words, dictionary-style clues</div></header>
 <div class="dateline"><span>{esc(edition)}</span><span>Pens at the ready</span><span>Answers: tomorrow&rsquo;s paper</span></div>
 {xw}
 <div class="yest"><span>Yesterday&rsquo;s solution</span>{yesterday}</div>

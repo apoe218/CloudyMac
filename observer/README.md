@@ -19,4 +19,4 @@ A daily front page, rebuilt by `.github/workflows/pages.yml` and published live 
 The `FEEDS` and team-ID block at the top of `build.py` controls every source, team and blocked keyword.
 
 ## Crossword
-`observer/crossword.py` holds the clue bank and generator. The puzzle is seeded by the date, so it changes every day and yesterday's solution can be regenerated. Add your own `CATEGORY|ANSWER|clue` lines to `BANK` to tailor it.
+A general (not interest-themed) medium 15x15 puzzle on page 3 of the print edition. Words and dictionary-style clues come from the free Datamuse API (Wiktionary definitions), filtered to everyday-but-not-trivial words and saved in `observer/wordbank.json`. `observer/crossword.py` builds the grid, seeded by the date, so it changes daily and yesterday's solution can be regenerated. Refresh the word list any time with `python3 observer/refresh_wordbank.py`.
