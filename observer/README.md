@@ -5,10 +5,10 @@ A daily front page, rebuilt by `.github/workflows/pages.yml` and published live 
 | Page | What it is |
 |---|---|
 | `/observer/index.html` | Full web edition (three columns on desktop, one on a phone) |
-| `/observer/print.html` | One-page US-Letter print edition. Open it, press **Print this page**, and choose "Save as PDF" or your printer. Margins none, background graphics on. |
+| `/observer/print.html` | Two-page greyscale US-Letter print edition (page 1 front page, page 2 sports). Article text is pulled in so stories are readable. Press **Print this edition**, set margins to None. It shrinks type slightly and trims the lowest-priority stories automatically so each page fits. |
 
 ## Running it live from GitHub
-- Automatic: rebuilds every morning (about 6:30am Houston) and on every push to the listed branches.
+- Automatic: rebuilds every morning (about 6:30am Houston). Scheduled runs only happen from the repo's **default branch**, so keep this code on the default branch (`main`). It also rebuilds on every push to the listed branches.
 - On demand: repo **Actions** tab, **Deploy to GitHub Pages**, **Run workflow**. This pulls every source fresh.
 - Settings, **Pages**, Source: **GitHub Actions**.
 

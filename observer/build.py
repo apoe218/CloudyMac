@@ -11,6 +11,7 @@ import re
 import sys
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -40,15 +41,18 @@ FEEDS = {
         ("KPRC 2", "https://www.click2houston.com/arc/outboundfeeds/rss/?outputType=xml"),
     ],
     "aggies": [
+        ("ESPN", "https://site.api.espn.com/apis/site/v2/sports/football/college-football/news?team=245&limit=20"),
         ("ESPN", "https://www.espn.com/espn/rss/ncf/news"),
         ("Google News", "https://news.google.com/rss/search?q=" + quote('"Texas A&M" football when:3d')
          + "&hl=en-US&gl=US&ceid=US:en"),
     ],
     "sec": [
+        ("ESPN", "https://site.api.espn.com/apis/site/v2/sports/football/college-football/news?limit=30"),
         ("Google News", "https://news.google.com/rss/search?q=" + quote("SEC football when:2d")
          + "&hl=en-US&gl=US&ceid=US:en"),
     ],
     "lfc": [
+        ("ESPN", "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/news?team=364&limit=20"),
         ("The Guardian", "https://www.theguardian.com/football/liverpool/rss"),
         ("Google News", "https://news.google.com/rss/search?q=" + quote("Liverpool FC when:2d")
          + "&hl=en-US&gl=US&ceid=US:en"),
@@ -57,8 +61,13 @@ FEEDS = {
         ("The Guardian", "https://www.theguardian.com/football/premierleague/rss"),
         ("The Guardian", "https://www.theguardian.com/football/championsleague/rss"),
         ("ESPN", "https://www.espn.com/espn/rss/soccer/news"),
+        ("ESPN", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/news?limit=15"),
     ],
-    "national": [("NYT", "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml")],
+    "national": [
+        ("BBC", "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml"),
+        ("The Guardian", "https://www.theguardian.com/us-news/rss"),
+        ("NYT", "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"),
+    ],
     "world": [("BBC", "https://feeds.bbci.co.uk/news/world/rss.xml")],
 }
 # ---------------------------------------------------------------------------
@@ -147,7 +156,72 @@ def parse_rss(data, source):
 
 
 SHARED_SEEN = set()  # stories already used anywhere on the page
-BLOCK = re.compile(r"Engines of Our Ingenuity|Sponsored|Crossword|Wordle", re.I)
+BLOCK = re.compile(r"Engines of Our Ingenuity|Sponsored|Crossword|Wordle|Playoff Predictor|promo code|parlay|\bodds\b|\bbetting\b|\bpicks?\b", re.I)
+
+
+def parse_espn_news(data, source):
+    items = []
+    for a in json.loads(data).get("articles", []):
+        link = ((a.get("links") or {}).get("web") or {}).get("href")
+        if not (a.get("headline") and link):
+            continue
+        try:
+            when = datetime.fromisoformat(a["published"].replace("Z", "+00:00"))
+        except Exception:  # noqa: BLE001
+            when = None
+        items.append({"title": a["headline"], "link": link, "desc": a.get("description") or "",
+                      "when": when, "source": source, "full": ""})
+    return items
+
+
+def parse_feed(url, source):
+    data = fetch(url)
+    return parse_espn_news(data, source) if "/apis/" in url else parse_rss(data, source)
+
+
+def article_text(url, want):
+    """Best-effort: pull the first real paragraphs out of an article page."""
+    page = fetch(url, tries=1, timeout=12).decode("utf-8", "ignore")
+    page = re.sub(r"<(script|style|nav|footer|aside|figure|header|form|noscript)\b.*?</\1>", "", page,
+                  flags=re.S | re.I)
+    m = re.search(r"<article\b.*?</article>", page, flags=re.S | re.I)
+    region = m.group(0) if m else page
+    junk = re.compile(r"subscribe|cookie|sign up|newsletter|all rights reserved|advertisement|"
+                      r"follow us|click here|read more|copyright|\u00a9|privacy", re.I)
+    out, total = [], 0
+    for raw in re.findall(r"<p\b[^>]*>(.*?)</p>", region, flags=re.S | re.I):
+        t = strip_html(raw)
+        if len(t) < 70 or junk.search(t):
+            continue
+        out.append(t)
+        total += len(t)
+        if total >= want:
+            break
+    return " ".join(out)
+
+
+def enrich(items, want=900):
+    """Fetch article bodies in parallel so print stories have real text."""
+    def one(it):
+        it["text"] = it["desc"]
+        if "news.google.com" in it["link"]:
+            return
+        try:
+            t = article_text(it["link"], want)
+        except Exception as e:  # noqa: BLE001
+            log(f"article fetch failed: {it['link'][:70]} ({e})")
+            return
+        if len(t) > len(it["text"]):
+            it["text"] = t
+    with ThreadPoolExecutor(8) as ex:
+        list(ex.map(one, items))
+    return items
+
+
+def best(items, n):
+    """Keep the n items with the most readable text, in their original (newest-first) order."""
+    ranked = sorted(enumerate(items), key=lambda p: (len(p[1].get("text", "")) < 150, p[0]))
+    return [it for _, it in sorted(ranked[:n])]
 
 
 def collect(feed_list, limit, per_feed=None, max_age_hours=None):
@@ -156,7 +230,7 @@ def collect(feed_list, limit, per_feed=None, max_age_hours=None):
     buckets = []
     for source, url in feed_list:
         try:
-            items = parse_rss(fetch(url), source)
+            items = parse_feed(url, source)
         except Exception as e:  # noqa: BLE001
             log(f"feed failed: {e}")
             continue
@@ -201,8 +275,12 @@ def story_list(items, lede=False, desc_len=170):
         return '<p class="muted">Nothing fit to print from this source right now.</p>'
     out = []
     for n, it in enumerate(items):
-        cls = "story lede" if (lede and n == 0) else "story"
-        d = clip(it["desc"], (150 if PRINT else 260) if (lede and n == 0) else desc_len) if desc_len else ""
+        first = lede and n == 0
+        cls = "story lede" if first else "story"
+        if PRINT:
+            d = clip(it.get("text") or it["desc"], (900 if first else 430) if desc_len else 0)
+        else:
+            d = clip(it["desc"], 260 if first else desc_len) if desc_len else ""
         desc = f"<p>{esc(d)}</p>" if re.search(r"\w{3}", d) else ""
         meta = " &middot; ".join(x for x in (esc(it["source"]), esc(ago(it["when"]))) if x)
         out.append(f'<article class="{cls}"><h3><a href="{esc(it["link"])}">{esc(it["title"])}</a></h3>'
@@ -220,7 +298,7 @@ def weather_section():
         p = posts[0]
         text = strip_html(p["full"] or p["desc"])
         paras = [x.strip() for x in re.split(r"\n{2,}", text) if len(x.strip()) > 60]
-        body = "".join(f"<p>{esc(clip(x, 520))}</p>" for x in paras[:3])
+        body = "".join(f"<p>{esc(clip(x, 800 if PRINT else 520))}</p>" for x in paras[: 4 if PRINT else 3])
         parts["lead"] = (
             f'<h2 class="hed"><a href="{esc(p["link"])}">{esc(p["title"])}</a></h2>'
             f'<p class="byline">Space City Weather &middot; {esc(ago(p["when"]))}</p>{body}'
@@ -354,7 +432,7 @@ def next_html(evs, team, count=3):
         label = "Up next" if n == 0 else "Then"
         comp = f' <span class="meta">{esc(ev["comp"])}</span>' if ev.get("comp") else ""
         rows.append(f'<div class="fx"><span class="tag">{label}</span> {at} <b>{esc(ev["opp"])}</b>'
-                    f'<span class="meta">{esc(when_ct(ev["date"]))}{(" &middot; " + esc(ev["venue"])) if ev["venue"] and not PRINT else ""}</span>{comp}</div>')
+                    f'<span class="meta">{esc(when_ct(ev["date"]))}{(" &middot; " + esc(ev["venue"])) if ev["venue"] else ""}</span>{comp}</div>')
     return "".join(rows)
 
 
@@ -400,7 +478,7 @@ def aggies_section():
         evs = parse_events(d["events"], AGGIES_ID)
         done = [e for e in evs if e["done"]]
         todo = [e for e in evs if not e["done"]]
-        out["sched"] = (result_html(done[-1], "Aggies") if done else "") + next_html(todo, "Aggies", 2 if PRINT else 3)
+        out["sched"] = (result_html(done[-1], "Aggies") if done else "") + next_html(todo, "Aggies", 3)
     except Exception as e:  # noqa: BLE001
         log(f"aggies schedule failed: {e}")
         out["sched"] = '<p class="muted">Schedule unavailable.</p>'
@@ -424,7 +502,7 @@ def aggies_section():
             rows.append((is_me, [i + 1, name, esc(stat(e, "vsconf")), esc(stat(e, "total")),
                                  esc(stat(e, "streak"))]))
         out["sec"] = table_html(["#", "SEC team", "Conf", "All", "Strk"], [
-            r if r is None else (r[1][0], r[1][1]) for r in window(rows, hi, 4 if PRINT else 8)], 5)
+            r if r is None else (r[1][0], r[1][1]) for r in window(rows, hi, 8)], 5)
         if hi is not None and ranks.get(AGGIES_ID):
             out["rank"] = f'No. {ranks[AGGIES_ID]} in the AP poll'
         elif hi is not None:
@@ -453,7 +531,7 @@ def liverpool_section():
                 log(f"fixtures {lg}: {e}")
         now = datetime.now(timezone.utc)
         upcoming = sorted((e for e in upcoming if not e["done"] and e["date"] > now), key=lambda e: e["date"])
-        out["sched"] = (result_html(done[-1], "Liverpool") if done else "") + next_html(upcoming, "Liverpool", 2 if PRINT else 3)
+        out["sched"] = (result_html(done[-1], "Liverpool") if done else "") + next_html(upcoming, "Liverpool", 3)
     except Exception as e:  # noqa: BLE001
         log(f"liverpool schedule failed: {e}")
         out["sched"] = '<p class="muted">Fixtures unavailable.</p>'
@@ -475,12 +553,12 @@ def liverpool_section():
                           [r if r is None else (r[1][0], r[1][1]) for r in window(rows, hi, top)], 6)
 
     try:
-        out["epl"] = league_table(f"{ESPN}/v2/sports/soccer/eng.1/standings", "Club", 4 if PRINT else 6, True)
+        out["epl"] = league_table(f"{ESPN}/v2/sports/soccer/eng.1/standings", "Premier League", 6, True)
     except Exception as e:  # noqa: BLE001
         log(f"epl standings failed: {e}")
         out["epl"] = '<p class="muted">Table unavailable.</p>'
     try:
-        out["ucl"] = league_table(f"{ESPN}/v2/sports/soccer/uefa.champions/standings", "Club", 5 if PRINT else 8, True)
+        out["ucl"] = league_table(f"{ESPN}/v2/sports/soccer/uefa.champions/standings", "Champions League", 8, True)
     except Exception as e:  # noqa: BLE001
         log(f"ucl standings failed: {e}")
         out["ucl"] = '<p class="muted">Table unavailable.</p>'
@@ -548,30 +626,43 @@ display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .toolbar span{margin-right:auto;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .toolbar a{color:var(--sky);text-decoration:underline}
 .toolbar button{font:700 12px var(--sans);background:var(--ink);color:var(--paper);border:0;padding:7px 14px;cursor:pointer;border-radius:3px}
-/* ---- print edition: one US-Letter page ---- */
-body.print .sheet{width:8.5in;max-width:100%;padding:.3in .35in}
+/* ---- web extras ---- */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
+.tabs button{font:700 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--ink);
+border:1px solid var(--rule);padding:6px 12px;cursor:pointer;border-radius:2px}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.live{font-variant-numeric:tabular-nums}
+/* ---- print edition: two US-Letter pages (front + sports), greyscale ---- */
+body.print{--paper:#fff;--paper2:#d6d6d6;--ink:#111;--muted:#4a4a4a;--rule:#111;--hair:#9a9a9a;--accent:#111;--aggie:#111;--lfc:#111;--sky:#111;
+background:var(--paper2);color:var(--ink);font-size:calc(11.5px*var(--s,1));line-height:1.38}
 body.print .toolbar{max-width:8.5in}
-body.print{font-size:10px;line-height:1.35}
-body.print .mast{padding:6px 0 3px}body.print .mast h1{font-size:54px}body.print .mast .tag{font-size:10px;margin-top:2px}
-body.print .grid{margin-top:8px;grid-template-columns:1.45fr 1fr 1fr}body.print .col{padding:0 9px;border-left:1px solid var(--hair)}body.print .col:first-child{padding-left:0;border-left:0}body.print .col:last-child{padding-right:0}
-body.print .sec{margin-bottom:10px}body.print .kicker{font-size:8.5px;margin-bottom:5px;padding-top:3px;flex-wrap:wrap}
-body.print .hed{font-size:19px;margin:2px 0 3px}body.print .byline{font-size:8px;margin-bottom:5px}
-body.print .lead p:nth-of-type(n+4){display:none}body.print .lead p{margin-bottom:5px}body.print .more{display:none}
-body.print .story{padding:4px 0}body.print .story h3{font-size:11.5px;line-height:1.2}body.print .story.lede h3{font-size:14px}
-body.print .story p{font-size:9px}body.print .story:not(.lede) p{display:none}
-body.print .meta{font-size:8px}body.print .now{display:none}
-body.print .days{margin:6px 0}body.print .day{padding:4px 2px;font-size:9px}body.print .hi{font-size:15px}
-body.print .sf{font-size:8px}body.print .calm{font-size:9px;margin:3px 0}
-body.print .tbl{font-size:9px}body.print .tbl th,body.print .tbl td{padding:1px 3px}
-body.print .fx{font-size:10px;padding:3px 0}body.print .sub{font-size:8.5px;margin-top:6px}
-body.print .dateline{font-size:9px;padding:4px 0}body.print .topline{font-size:8px}
-body.print .foot{font-size:8px}body.print .alert{padding:4px 8px;font-size:9.5px}
+body.print .page{width:8.5in;height:11in;margin:14px auto;background:#fff;overflow:hidden;box-shadow:0 0 0 1px var(--hair),0 6px 24px rgba(0,0,0,.25)}
+body.print .sheet{max-width:none;width:100%;margin:0 auto;padding:.3in .35in;box-shadow:none;background:#fff}
+body.print .mast{padding:6px 0 4px}body.print .mast h1{font-size:calc(62px*var(--s,1))}body.print .mast.mini h1{font-size:calc(34px*var(--s,1))}
+body.print .mast .tag{font-size:calc(11px*var(--s,1));margin-top:2px}
+body.print .grid{margin-top:10px;grid-template-columns:1.25fr 1fr 1fr}
+body.print .col{padding:0 11px;border-left:1px solid var(--hair)}body.print .col:first-child{padding-left:0;border-left:0}body.print .col:last-child{padding-right:0}
+body.print .sec{margin-bottom:12px}body.print .kicker{font-size:calc(9px*var(--s,1));margin-bottom:6px;padding-top:3px;flex-wrap:wrap}
+body.print .hed{font-size:calc(25px*var(--s,1));margin:2px 0 4px}body.print .byline{font-size:calc(8.5px*var(--s,1));margin-bottom:6px}
+body.print .lead p{margin-bottom:6px;text-align:justify;hyphens:auto}
+body.print .more,body.print .toolbar+.sheet .more{display:none}
+body.print .story{padding:6px 0}body.print .story h3{font-size:calc(14px*var(--s,1));line-height:1.2}body.print .story.lede h3{font-size:calc(18px*var(--s,1))}
+body.print .story p{font-size:calc(11px*var(--s,1));color:var(--ink);text-align:justify;hyphens:auto;margin:3px 0 2px}
+body.print .meta{font-size:calc(8.5px*var(--s,1))}body.print .now{font-size:calc(11px*var(--s,1))}
+body.print .days{margin:8px 0}body.print .day{padding:5px 2px;font-size:calc(10px*var(--s,1))}body.print .hi{font-size:calc(17px*var(--s,1))}body.print .sf{font-size:calc(8.5px*var(--s,1))}
+body.print .calm{font-size:calc(10px*var(--s,1))}body.print .alert{background:#eee;border-color:#111;font-size:calc(10.5px*var(--s,1))}
+body.print .tbl{font-size:calc(10px*var(--s,1))}body.print .tbl th,body.print .tbl td{padding:2px 3px}
+body.print .tbl tr.me td{background:#d9d9d9}body.print .aggie-tbl tr.me td{background:#d9d9d9}
+body.print .res.w,body.print .res.l,body.print .res.d{color:#111}
+body.print .fx{font-size:calc(11px*var(--s,1));padding:4px 0}body.print .sub{font-size:calc(9px*var(--s,1));margin-top:8px}
+body.print .dateline{font-size:calc(9.5px*var(--s,1));padding:4px 0}body.print .topline{font-size:calc(8.5px*var(--s,1))}body.print .foot{font-size:calc(8.5px*var(--s,1))}
 @page{size:letter;margin:0}
 @media print{
   .toolbar{display:none}
-  body,body.print{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  body.print .sheet{width:8.5in;height:11in;max-width:none;margin:0;box-shadow:none;overflow:hidden;page-break-after:avoid}
-  body.screen .sheet{box-shadow:none}
+  html,body,body.print{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.print .page{margin:0;box-shadow:none;break-after:page;page-break-after:always}
+  body.print .page:last-of-type{break-after:auto;page-break-after:auto}
+  body.screen .sheet{box-shadow:none}.tabs{display:none}
   .story,.fx,.tbl,.alert{break-inside:avoid}
 }
 """
@@ -583,80 +674,138 @@ def build():
     wx, now_line = weather_section()
 
     log("fetching news...")
-    n = (lambda full, small: small if PRINT else full)
-    houston = collect(FEEDS["houston"], n(7, 3), per_feed=6, max_age_hours=72)
-    aggie_news = collect(FEEDS["aggies"], n(6, 3), per_feed=5, max_age_hours=96)
-    sec_news = collect(FEEDS["sec"], n(5, 2), per_feed=5, max_age_hours=60)
-    lfc_news = collect(FEEDS["lfc"], n(6, 2), per_feed=5, max_age_hours=96)
-    fb_news = collect(FEEDS["football"], n(6, 2), per_feed=4, max_age_hours=72)
-    nat = collect(FEEDS["national"], 5, max_age_hours=48)
-    world = collect(FEEDS["world"], 5, max_age_hours=48)
+    P = PRINT
+    n = (lambda web, prt: prt if P else web)
+    # print pulls extra candidates, then keeps the ones whose article text is actually readable
+    houston = collect(FEEDS["houston"], n(7, 12), per_feed=8, max_age_hours=72)
+    aggie_news = collect(FEEDS["aggies"], n(6, 10), per_feed=8, max_age_hours=96)
+    sec_news = collect(FEEDS["sec"], n(5, 9), per_feed=8, max_age_hours=60)
+    lfc_news = collect(FEEDS["lfc"], n(6, 10), per_feed=8, max_age_hours=96)
+    fb_news = collect(FEEDS["football"], n(6, 8), per_feed=6, max_age_hours=72)
+    nat = collect(FEEDS["national"], n(5, 8), max_age_hours=48)
+    world = collect(FEEDS["world"], n(5, 8), max_age_hours=48)
+    if P:
+        log("reading articles for the print edition...")
+        for grp in (houston, aggie_news, sec_news, lfc_news, fb_news, nat, world):
+            enrich(grp)
+        houston, aggie_news, sec_news = best(houston, 4), best(aggie_news, 3), best(sec_news, 3)
+        lfc_news, fb_news = best(lfc_news, 3), best(fb_news, 2)
+        nat, world = best(nat, 3), best(world, 2)
 
     log("fetching sports data...")
     ag = aggies_section()
     lv = liverpool_section()
 
-    toolbar = (
-        '<nav class="toolbar"><span>The H-Town Observer</span>'
-        + ('<a href="index.html">&larr; Full web edition</a>' if PRINT else '<a href="print.html">Print edition</a>')
-        + '<button onclick="window.print()">'
-        + ('Print this page' if PRINT else 'Print')
-        + '</button></nav>')
-    fit = ("<script>(function(){function f(){var s=document.querySelector('.sheet');s.style.zoom=1;"
-           "var h=s.scrollHeight,max=1056-6;if(h>max)s.style.zoom=max/h;}"
-           "window.addEventListener('load',f);window.addEventListener('beforeprint',f);})();</script>"
-           if PRINT else "")
     edition = now.strftime("%A, %B %-d, %Y")
     updated = now.strftime("%-I:%M %p CT")
     ag_rank = f"<span>{esc(ag['rank'])}</span>" if ag["rank"] else ""
+    nat_world = story_list(nat[: n(4, 3)] + world[: n(4, 2)], desc_len=140)
 
-    return f"""<!DOCTYPE html>
+    weather = (f'<section class="sec" data-topic="weather"><div class="kicker sky">Weather <span>via Space City Weather &amp; NWS</span></div>'
+               f'<div class="lead">{wx["lead"]}</div>{wx["alerts"]}{wx["forecast"]}{wx["now"]}{wx["tropics"]}</section>')
+    houston_sec = f'<section class="sec" data-topic="news"><div class="kicker">Around Houston</div>{story_list(houston, lede=True)}</section>'
+    world_sec = f'<section class="sec" data-topic="news"><div class="kicker">The Nation &amp; the World</div>{nat_world}</section>'
+    aggie_top = (f'<section class="sec" data-topic="aggies"><div class="kicker aggie">Gig &rsquo;Em &middot; Texas A&amp;M Football {ag_rank}</div>'
+                 f'{ag["sched"]}<div class="sub">SEC Standings</div><div class="aggie-tbl">{ag["sec"]}</div></section>')
+    aggie_rep = f'<section class="sec" data-topic="aggies"><div class="kicker aggie">Aggie Report</div>{story_list(aggie_news, lede=True)}</section>'
+    sec_rep = f'<section class="sec" data-topic="aggies"><div class="kicker aggie">Around the SEC &amp; College Football</div>{story_list(sec_news, desc_len=0 if not P else 1)}</section>'
+    lfc_top = (f'<section class="sec" data-topic="lfc"><div class="kicker lfc">You&rsquo;ll Never Walk Alone &middot; Liverpool FC</div>{lv["sched"]}'
+               f'<div class="sub">Premier League</div>{lv["epl"]}<div class="sub">Champions League &middot; League Phase</div>{lv["ucl"]}</section>')
+    lfc_rep = f'<section class="sec" data-topic="lfc"><div class="kicker lfc">Anfield Report</div>{story_list(lfc_news, lede=True)}</section>'
+    fb_rep = f'<section class="sec" data-topic="lfc"><div class="kicker lfc">Premier League &amp; Europe</div>{story_list(fb_news, desc_len=0 if not P else 1)}</section>'
+
+    head = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The H-Town Observer &mdash; {esc(edition)}</title>
 <meta name="description" content="A daily front page for Houston weather, Texas A&amp;M, the SEC, Liverpool and the world.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&amp;family=Playfair+Display:wght@700;900&amp;family=UnifrakturCook:wght@700&amp;display=swap" rel="stylesheet">
-<style>{CSS}</style></head>
-<body class="{'print' if PRINT else 'screen'}">{toolbar}<div class="sheet">
-<div class="topline"><span>Houston, Texas</span><span>Weather &middot; Aggies &middot; The Reds &middot; The World</span><span>Edition no. {now.timetuple().tm_yday}</span></div>
+<style>{CSS}</style></head>"""
+    foot = ('<footer class="foot"><span>Compiled automatically each morning from Space City Weather, NWS, NHC, ESPN, The Guardian, BBC, NYT, '
+            'Houston Public Media, KPRC and Google News.</span><span>Headlines link to the original publishers.</span></footer>')
+
+    if P:
+        fit = """<script>
+(function(){
+  var MAX=1050;
+  function over(s){return s.scrollHeight>MAX}
+  function fit(s){
+    if(s._orig===undefined)s._orig=s.innerHTML;else s.innerHTML=s._orig;
+    var z=1;s.style.setProperty('--s',z);
+    while(over(s)&&z>0.88){z=Math.round((z-0.02)*100)/100;s.style.setProperty('--s',z);}
+    var guard=0;
+    while(over(s)&&guard++<40){
+      var worst=null,wb=-1;
+      s.querySelectorAll('.col').forEach(function(c){var l=c.lastElementChild;var b=l?l.getBoundingClientRect().bottom:0;if(b>wb){wb=b;worst=c}});
+      var st=worst.querySelectorAll('.story'),rm=null;
+      for(var i=st.length-1;i>=0;i--){var pv=st[i].previousElementSibling;if(pv&&pv.classList.contains('story')){rm=st[i];break}}
+      if(!rm)break;rm.remove();
+    }
+  }
+  function all(){document.querySelectorAll('.sheet').forEach(fit)}
+  window.addEventListener('load',all);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(all);
+  window.addEventListener('beforeprint',all);
+})();
+</script>"""
+        toolbar = ('<nav class="toolbar"><span>The H-Town Observer &middot; print edition (2 pages, greyscale)</span>'
+                   '<a href="index.html">&larr; Web edition</a><button onclick="window.print()">Print this edition</button></nav>')
+        p1 = f"""<div class="page"><div class="sheet">
+<div class="topline"><span>Houston, Texas</span><span>Weather &middot; Aggies &middot; The Reds &middot; The World</span><span>Page 1 of 2 &middot; Sports inside</span></div>
 <header class="mast"><h1>The H-Town Observer</h1>
 <div class="tag">&ldquo;All the weather, all the Aggies, all the Reds &mdash; fit to print.&rdquo;</div></header>
 <div class="dateline"><span>{esc(edition)}</span><span>{now_line}</span><span>Updated {esc(updated)}</span></div>
+<div class="grid"><div class="col">{weather}</div><div class="col">{houston_sec}</div><div class="col">{world_sec}</div></div>
+{foot}</div></div>"""
+        p2 = f"""<div class="page"><div class="sheet">
+<div class="topline"><span>The H-Town Observer</span><span>The Sports Page</span><span>Page 2 of 2</span></div>
+<header class="mast mini"><h1>Sports &amp; Scoreboard</h1>
+<div class="tag">Texas A&amp;M &middot; the SEC &middot; Liverpool &middot; the Premier League &amp; Europe</div></header>
+<div class="dateline"><span>{esc(edition)}</span><span>Gig &rsquo;Em &amp; YNWA</span><span>Updated {esc(updated)}</span></div>
+<div class="grid"><div class="col">{aggie_top}{aggie_rep}</div><div class="col">{lfc_top}{fb_rep}</div><div class="col">{lfc_rep}{sec_rep}</div></div>
+{foot}</div></div>"""
+        return f'{head}<body class="print">{toolbar}{p1}{p2}{fit}</body></html>'
 
+    toolbar = ('<nav class="toolbar"><span>The H-Town Observer</span><a href="print.html">Print edition</a>'
+               '<button onclick="window.print()">Print</button></nav>')
+    tabs = ('<div class="tabs" role="group" aria-label="Sections">'
+            '<button data-view="all" aria-pressed="true">All</button><button data-view="weather">Weather</button>'
+            '<button data-view="news">Houston &amp; World</button><button data-view="aggies">Aggies &amp; SEC</button>'
+            '<button data-view="lfc">Liverpool &amp; Europe</button></div>')
+    js = """<script>
+(function(){
+  var tabs=document.querySelectorAll('.tabs button'),grid=document.querySelector('.grid');
+  function show(v){
+    tabs.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.view===v)});
+    document.querySelectorAll('.sec').forEach(function(s){s.hidden=!(v==='all'||s.dataset.topic===v)});
+    var vis=0;document.querySelectorAll('.col').forEach(function(c){var any=c.querySelector('.sec:not([hidden])');c.hidden=!any;if(any)vis++});
+    grid.style.gridTemplateColumns=v==='all'?'':'repeat('+Math.max(1,vis)+',1fr)';
+    try{localStorage.setItem('observerView',v)}catch(e){}
+  }
+  tabs.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.view)})});
+  try{var v=localStorage.getItem('observerView');if(v)show(v)}catch(e){}
+  // live temperature straight from the National Weather Service
+  var el=document.getElementById('nowline');
+  fetch('https://api.weather.gov/gridpoints/HGX/65,97/forecast/hourly').then(function(r){return r.json()}).then(function(d){
+    var p=d.properties.periods[0];el.innerHTML=p.temperature+'&deg;F &middot; '+p.shortForecast+' <small>(live)</small>';
+  }).catch(function(){});
+})();
+</script>"""
+    return f"""{head}
+<body class="screen">{toolbar}<div class="sheet">
+<div class="topline"><span>Houston, Texas</span><span>Weather &middot; Aggies &middot; The Reds &middot; The World</span><span>Edition no. {now.timetuple().tm_yday}</span></div>
+<header class="mast"><h1>The H-Town Observer</h1>
+<div class="tag">&ldquo;All the weather, all the Aggies, all the Reds &mdash; fit to print.&rdquo;</div></header>
+<div class="dateline"><span>{esc(edition)}</span><span class="live" id="nowline">{now_line}</span><span>Updated {esc(updated)}</span></div>
+{tabs}
 <div class="grid">
-<!-- Column 1: weather + local + world -->
-<div class="col">
-<section class="sec"><div class="kicker sky">Weather <span>via Space City Weather &amp; NWS</span></div>
-<div class="lead">{wx['lead']}</div>{wx['alerts']}{wx['forecast']}{wx['now']}{wx['tropics']}</section>
-<section class="sec"><div class="kicker">Around Houston</div>{story_list(houston, lede=True)}</section>
-<section class="sec"><div class="kicker">The Nation &amp; the World</div>
-{story_list(nat[: n(4, 2)] + world[: n(4, 2)], desc_len=140)}</section>
+<div class="col">{weather}{houston_sec}{world_sec}</div>
+<div class="col">{aggie_top}{aggie_rep}{sec_rep}</div>
+<div class="col">{lfc_top}{lfc_rep}{fb_rep}</div>
 </div>
-
-<!-- Column 2: Aggies + SEC -->
-<div class="col">
-<section class="sec"><div class="kicker aggie">Gig &rsquo;Em &middot; Texas A&amp;M Football {ag_rank}</div>
-{ag['sched']}
-<div class="sub">SEC Standings</div><div class="aggie-tbl">{ag['sec']}</div></section>
-<section class="sec"><div class="kicker aggie">Aggie Report</div>{story_list(aggie_news, lede=True)}</section>
-<section class="sec"><div class="kicker aggie">Around the SEC &amp; College Football</div>{story_list(sec_news, desc_len=0)}</section>
-</div>
-
-<!-- Column 3: Liverpool + football -->
-<div class="col">
-<section class="sec"><div class="kicker lfc">You&rsquo;ll Never Walk Alone &middot; Liverpool FC</div>
-{lv['sched']}
-<div class="sub">Premier League</div>{lv['epl']}
-<div class="sub">Champions League &middot; League Phase</div>{lv['ucl']}</section>
-<section class="sec"><div class="kicker lfc">Anfield Report</div>{story_list(lfc_news, lede=True)}</section>
-<section class="sec"><div class="kicker lfc">Premier League &amp; Europe</div>{story_list(fb_news, desc_len=0)}</section>
-</div>
-</div>
-
-<footer class="foot"><span>Compiled automatically each morning from Space City Weather, NWS, NHC, ESPN, The Guardian, BBC, NYT, Houston Public Media, KPRC and Google News.</span>
-<span>Headlines link to the original publishers.</span></footer>
-</div>{fit}</body></html>"""
+{foot}
+</div>{js}</body></html>"""
 
 
 if __name__ == "__main__":
