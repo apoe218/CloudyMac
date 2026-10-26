@@ -63,6 +63,8 @@ FEEDS = {
 }
 # ---------------------------------------------------------------------------
 
+PRINT = False  # True when building the one-page print edition
+
 
 def fetch(url, tries=3, timeout=25):
     last = None
@@ -200,7 +202,7 @@ def story_list(items, lede=False, desc_len=170):
     out = []
     for n, it in enumerate(items):
         cls = "story lede" if (lede and n == 0) else "story"
-        d = clip(it["desc"], 260 if (lede and n == 0) else desc_len) if desc_len else ""
+        d = clip(it["desc"], (150 if PRINT else 260) if (lede and n == 0) else desc_len) if desc_len else ""
         desc = f"<p>{esc(d)}</p>" if re.search(r"\w{3}", d) else ""
         meta = " &middot; ".join(x for x in (esc(it["source"]), esc(ago(it["when"]))) if x)
         out.append(f'<article class="{cls}"><h3><a href="{esc(it["link"])}">{esc(it["title"])}</a></h3>'
@@ -352,7 +354,7 @@ def next_html(evs, team, count=3):
         label = "Up next" if n == 0 else "Then"
         comp = f' <span class="meta">{esc(ev["comp"])}</span>' if ev.get("comp") else ""
         rows.append(f'<div class="fx"><span class="tag">{label}</span> {at} <b>{esc(ev["opp"])}</b>'
-                    f'<span class="meta">{esc(when_ct(ev["date"]))}{(" &middot; " + esc(ev["venue"])) if ev["venue"] else ""}</span>{comp}</div>')
+                    f'<span class="meta">{esc(when_ct(ev["date"]))}{(" &middot; " + esc(ev["venue"])) if ev["venue"] and not PRINT else ""}</span>{comp}</div>')
     return "".join(rows)
 
 
@@ -398,7 +400,7 @@ def aggies_section():
         evs = parse_events(d["events"], AGGIES_ID)
         done = [e for e in evs if e["done"]]
         todo = [e for e in evs if not e["done"]]
-        out["sched"] = (result_html(done[-1], "Aggies") if done else "") + next_html(todo, "Aggies", 3)
+        out["sched"] = (result_html(done[-1], "Aggies") if done else "") + next_html(todo, "Aggies", 2 if PRINT else 3)
     except Exception as e:  # noqa: BLE001
         log(f"aggies schedule failed: {e}")
         out["sched"] = '<p class="muted">Schedule unavailable.</p>'
@@ -422,7 +424,7 @@ def aggies_section():
             rows.append((is_me, [i + 1, name, esc(stat(e, "vsconf")), esc(stat(e, "total")),
                                  esc(stat(e, "streak"))]))
         out["sec"] = table_html(["#", "SEC team", "Conf", "All", "Strk"], [
-            r if r is None else (r[1][0], r[1][1]) for r in window(rows, hi, 8)], 5)
+            r if r is None else (r[1][0], r[1][1]) for r in window(rows, hi, 4 if PRINT else 8)], 5)
         if hi is not None and ranks.get(AGGIES_ID):
             out["rank"] = f'No. {ranks[AGGIES_ID]} in the AP poll'
         elif hi is not None:
@@ -451,7 +453,7 @@ def liverpool_section():
                 log(f"fixtures {lg}: {e}")
         now = datetime.now(timezone.utc)
         upcoming = sorted((e for e in upcoming if not e["done"] and e["date"] > now), key=lambda e: e["date"])
-        out["sched"] = (result_html(done[-1], "Liverpool") if done else "") + next_html(upcoming, "Liverpool", 3)
+        out["sched"] = (result_html(done[-1], "Liverpool") if done else "") + next_html(upcoming, "Liverpool", 2 if PRINT else 3)
     except Exception as e:  # noqa: BLE001
         log(f"liverpool schedule failed: {e}")
         out["sched"] = '<p class="muted">Fixtures unavailable.</p>'
@@ -473,12 +475,12 @@ def liverpool_section():
                           [r if r is None else (r[1][0], r[1][1]) for r in window(rows, hi, top)], 6)
 
     try:
-        out["epl"] = league_table(f"{ESPN}/v2/sports/soccer/eng.1/standings", "Premier League", 6, True)
+        out["epl"] = league_table(f"{ESPN}/v2/sports/soccer/eng.1/standings", "Club", 4 if PRINT else 6, True)
     except Exception as e:  # noqa: BLE001
         log(f"epl standings failed: {e}")
         out["epl"] = '<p class="muted">Table unavailable.</p>'
     try:
-        out["ucl"] = league_table(f"{ESPN}/v2/sports/soccer/uefa.champions/standings", "Champions League", 8, True)
+        out["ucl"] = league_table(f"{ESPN}/v2/sports/soccer/uefa.champions/standings", "Club", 5 if PRINT else 8, True)
     except Exception as e:  # noqa: BLE001
         log(f"ucl standings failed: {e}")
         out["ucl"] = '<p class="muted">Table unavailable.</p>'
@@ -533,7 +535,7 @@ p{margin:0 0 10px}.more{font:700 12px var(--sans);letter-spacing:.06em;text-tran
 .fx .tag{font:800 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block}
 .res{font-family:var(--sans)}.res.w{color:#1f7a3a}.res.l{color:var(--accent)}.res.d{color:var(--muted)}
 .tbl{width:100%;border-collapse:collapse;font:12px var(--sans);margin:4px 0 8px}
-.tbl th{text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--rule);padding:3px 4px}
+.tbl th{white-space:nowrap;text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--rule);padding:3px 4px}
 .tbl td{padding:3px 4px;border-bottom:1px solid var(--hair)}.tbl td:first-child{width:24px;color:var(--muted)}
 .tbl tr.me td{font-weight:800;background:rgba(155,28,28,.1)}.tbl tr.gap td{text-align:center;color:var(--muted)}
 .aggie-tbl tr.me td{background:rgba(80,0,0,.12)}.rk{font-size:9px;color:var(--accent);font-weight:700}
@@ -542,19 +544,51 @@ p{margin:0 0 10px}.more{font:700 12px var(--sans);letter-spacing:.06em;text-tran
 display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.col{padding:0;border-left:0}.sheet{padding:12px 14px}}
 @media print{body{background:#fff}.sheet{box-shadow:none;max-width:none}}
+.toolbar{display:flex;gap:14px;align-items:center;justify-content:flex-end;max-width:1180px;margin:0 auto;padding:8px 24px;font:600 12px var(--sans)}
+.toolbar span{margin-right:auto;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.toolbar a{color:var(--sky);text-decoration:underline}
+.toolbar button{font:700 12px var(--sans);background:var(--ink);color:var(--paper);border:0;padding:7px 14px;cursor:pointer;border-radius:3px}
+/* ---- print edition: one US-Letter page ---- */
+body.print .sheet{width:8.5in;max-width:100%;padding:.3in .35in}
+body.print .toolbar{max-width:8.5in}
+body.print{font-size:10px;line-height:1.35}
+body.print .mast{padding:6px 0 3px}body.print .mast h1{font-size:54px}body.print .mast .tag{font-size:10px;margin-top:2px}
+body.print .grid{margin-top:8px;grid-template-columns:1.45fr 1fr 1fr}body.print .col{padding:0 9px;border-left:1px solid var(--hair)}body.print .col:first-child{padding-left:0;border-left:0}body.print .col:last-child{padding-right:0}
+body.print .sec{margin-bottom:10px}body.print .kicker{font-size:8.5px;margin-bottom:5px;padding-top:3px;flex-wrap:wrap}
+body.print .hed{font-size:19px;margin:2px 0 3px}body.print .byline{font-size:8px;margin-bottom:5px}
+body.print .lead p:nth-of-type(n+4){display:none}body.print .lead p{margin-bottom:5px}body.print .more{display:none}
+body.print .story{padding:4px 0}body.print .story h3{font-size:11.5px;line-height:1.2}body.print .story.lede h3{font-size:14px}
+body.print .story p{font-size:9px}body.print .story:not(.lede) p{display:none}
+body.print .meta{font-size:8px}body.print .now{display:none}
+body.print .days{margin:6px 0}body.print .day{padding:4px 2px;font-size:9px}body.print .hi{font-size:15px}
+body.print .sf{font-size:8px}body.print .calm{font-size:9px;margin:3px 0}
+body.print .tbl{font-size:9px}body.print .tbl th,body.print .tbl td{padding:1px 3px}
+body.print .fx{font-size:10px;padding:3px 0}body.print .sub{font-size:8.5px;margin-top:6px}
+body.print .dateline{font-size:9px;padding:4px 0}body.print .topline{font-size:8px}
+body.print .foot{font-size:8px}body.print .alert{padding:4px 8px;font-size:9.5px}
+@page{size:letter;margin:0}
+@media print{
+  .toolbar{display:none}
+  body,body.print{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.print .sheet{width:8.5in;height:11in;max-width:none;margin:0;box-shadow:none;overflow:hidden;page-break-after:avoid}
+  body.screen .sheet{box-shadow:none}
+  .story,.fx,.tbl,.alert{break-inside:avoid}
+}
 """
 
 
 def build():
+    SHARED_SEEN.clear()
     now = datetime.now(CT)
     wx, now_line = weather_section()
 
     log("fetching news...")
-    houston = collect(FEEDS["houston"], 7, per_feed=6, max_age_hours=72)
-    aggie_news = collect(FEEDS["aggies"], 6, per_feed=5, max_age_hours=96)
-    sec_news = collect(FEEDS["sec"], 5, per_feed=5, max_age_hours=60)
-    lfc_news = collect(FEEDS["lfc"], 6, per_feed=5, max_age_hours=96)
-    fb_news = collect(FEEDS["football"], 6, per_feed=4, max_age_hours=72)
+    n = (lambda full, small: small if PRINT else full)
+    houston = collect(FEEDS["houston"], n(7, 3), per_feed=6, max_age_hours=72)
+    aggie_news = collect(FEEDS["aggies"], n(6, 3), per_feed=5, max_age_hours=96)
+    sec_news = collect(FEEDS["sec"], n(5, 2), per_feed=5, max_age_hours=60)
+    lfc_news = collect(FEEDS["lfc"], n(6, 2), per_feed=5, max_age_hours=96)
+    fb_news = collect(FEEDS["football"], n(6, 2), per_feed=4, max_age_hours=72)
     nat = collect(FEEDS["national"], 5, max_age_hours=48)
     world = collect(FEEDS["world"], 5, max_age_hours=48)
 
@@ -562,6 +596,16 @@ def build():
     ag = aggies_section()
     lv = liverpool_section()
 
+    toolbar = (
+        '<nav class="toolbar"><span>The H-Town Observer</span>'
+        + ('<a href="index.html">&larr; Full web edition</a>' if PRINT else '<a href="print.html">Print edition</a>')
+        + '<button onclick="window.print()">'
+        + ('Print this page' if PRINT else 'Print')
+        + '</button></nav>')
+    fit = ("<script>(function(){function f(){var s=document.querySelector('.sheet');s.style.zoom=1;"
+           "var h=s.scrollHeight,max=1056-6;if(h>max)s.style.zoom=max/h;}"
+           "window.addEventListener('load',f);window.addEventListener('beforeprint',f);})();</script>"
+           if PRINT else "")
     edition = now.strftime("%A, %B %-d, %Y")
     updated = now.strftime("%-I:%M %p CT")
     ag_rank = f"<span>{esc(ag['rank'])}</span>" if ag["rank"] else ""
@@ -574,7 +618,7 @@ def build():
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&amp;family=Playfair+Display:wght@700;900&amp;family=UnifrakturCook:wght@700&amp;display=swap" rel="stylesheet">
 <style>{CSS}</style></head>
-<body><div class="sheet">
+<body class="{'print' if PRINT else 'screen'}">{toolbar}<div class="sheet">
 <div class="topline"><span>Houston, Texas</span><span>Weather &middot; Aggies &middot; The Reds &middot; The World</span><span>Edition no. {now.timetuple().tm_yday}</span></div>
 <header class="mast"><h1>The H-Town Observer</h1>
 <div class="tag">&ldquo;All the weather, all the Aggies, all the Reds &mdash; fit to print.&rdquo;</div></header>
@@ -584,10 +628,10 @@ def build():
 <!-- Column 1: weather + local + world -->
 <div class="col">
 <section class="sec"><div class="kicker sky">Weather <span>via Space City Weather &amp; NWS</span></div>
-{wx['lead']}{wx['alerts']}{wx['forecast']}{wx['now']}{wx['tropics']}</section>
+<div class="lead">{wx['lead']}</div>{wx['alerts']}{wx['forecast']}{wx['now']}{wx['tropics']}</section>
 <section class="sec"><div class="kicker">Around Houston</div>{story_list(houston, lede=True)}</section>
 <section class="sec"><div class="kicker">The Nation &amp; the World</div>
-{story_list(nat[:4] + world[:4], desc_len=140)}</section>
+{story_list(nat[: n(4, 2)] + world[: n(4, 2)], desc_len=140)}</section>
 </div>
 
 <!-- Column 2: Aggies + SEC -->
@@ -612,10 +656,12 @@ def build():
 
 <footer class="foot"><span>Compiled automatically each morning from Space City Weather, NWS, NHC, ESPN, The Guardian, BBC, NYT, Houston Public Media, KPRC and Google News.</span>
 <span>Headlines link to the original publishers.</span></footer>
-</div></body></html>"""
+</div>{fit}</body></html>"""
 
 
 if __name__ == "__main__":
-    out = Path(__file__).with_name("index.html")
-    out.write_text(build(), encoding="utf-8")
-    log(f"wrote {out}")
+    here = Path(__file__).parent
+    for name, is_print in (("index.html", False), ("print.html", True)):
+        PRINT = is_print
+        (here / name).write_text(build(), encoding="utf-8")
+        log(f"wrote {here / name}")

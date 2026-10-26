@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, claude/personal-website-design-oj5gbk]
+    branches: [main, claude/personal-website-design-oj5gbk, claude/inspiring-faraday-z9jxjv]
   schedule:
     # Rebuild the H-Town Observer every morning (11:30 UTC = 6:30am CDT / 5:30am CST)
     - cron: "30 11 * * *"

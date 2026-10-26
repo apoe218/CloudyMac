@@ -1,13 +1,19 @@
 # The H-Town Observer
 
-A daily front page, rebuilt every morning by `.github/workflows/pages.yml` and
-published at `/observer/` on the site.
+A daily front page, rebuilt by `.github/workflows/pages.yml` and published live on GitHub Pages.
 
-- Weather: Space City Weather (latest post), NWS 7-day + alerts, NHC tropics
-- Aggies/SEC: ESPN schedule, AP rank, SEC standings, Texas A&M and SEC headlines
-- Liverpool: fixtures, Premier League and Champions League tables, headlines
-- Houston, national and world headlines
+| Page | What it is |
+|---|---|
+| `/observer/index.html` | Full web edition (three columns on desktop, one on a phone) |
+| `/observer/print.html` | One-page US-Letter print edition. Open it, press **Print this page**, and choose "Save as PDF" or your printer. Margins none, background graphics on. |
 
-Run locally: `python3 observer/build.py && open observer/index.html`
+## Running it live from GitHub
+- Automatic: rebuilds every morning (about 6:30am Houston) and on every push to the listed branches.
+- On demand: repo **Actions** tab, **Deploy to GitHub Pages**, **Run workflow**. This pulls every source fresh.
+- Settings, **Pages**, Source: **GitHub Actions**.
 
-Tailor it by editing the `FEEDS` and team-ID block at the top of `build.py`.
+## Locally
+`python3 observer/build.py` writes both files (standard library only, no installs).
+
+## Tailoring
+The `FEEDS` and team-ID block at the top of `build.py` controls every source, team and blocked keyword.
