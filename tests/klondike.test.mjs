@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isRed, rng } from '../src/core/deck.js';
-import {
-  newGame, move, draw, findMoves, autoDest, autoStep, canAutoComplete, isWon, getPile, TABLEAU, FOUNDATIONS,
-} from '../src/games/klondike.js';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+
+// The game is one self-contained index.html; pull the engine section out of it.
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const engine = html.split('// ==== ENGINE START')[1].split('// ==== ENGINE END')[0];
+const ctx = vm.createContext({ structuredClone });
+vm.runInContext(engine + `
+globalThis.E = { isRed, rng, newGame, move, draw, findMoves, autoDest, autoStep, canAutoComplete, isWon, canDraw };`, ctx);
+const { isRed, rng, newGame, move, draw, findMoves, autoDest, autoStep, canAutoComplete, isWon } = ctx.E;
 
 function allCards(s) {
   return [...s.stock, ...s.waste, ...s.foundations.flat(), ...s.tableau.flat()];
@@ -33,7 +39,7 @@ function checkInvariants(s) {
 
 test('deal layout', () => {
   const s = newGame(1);
-  assert.deepEqual(s.tableau.map((c) => c.length), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual([...s.tableau.map((c) => c.length)], [1, 2, 3, 4, 5, 6, 7]);
   assert.equal(s.stock.length, 24);
   s.tableau.forEach((col) => col.forEach((c, i) => assert.equal(c.up, i === col.length - 1)));
   checkInvariants(s);
@@ -134,4 +140,13 @@ test('random play never breaks invariants', () => {
     }
     checkInvariants(s);
   }
+});
+
+test('stuck detection helper inputs: findMoves is empty on a dead board', () => {
+  const s = newGame(1, { draw: 1, redeals: 0 });
+  s.stock = [];
+  s.waste = [];
+  s.tableau = [[{ s: 0, r: 5, up: true }], [{ s: 0, r: 5 + 1, up: true }], [], [], [], [], []];
+  s.tableau[1] = [{ s: 1, r: 3, up: true }];
+  assert.equal(findMoves(s).filter((m) => m.w >= 1).length, 0);
 });
