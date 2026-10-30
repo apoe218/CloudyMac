@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Klondike Solitaire</title>
+  <meta name="theme-color" content="#0b6b3a">
+  <link rel="stylesheet" href="src/ui/style.css">
+</head>
+<body data-table="green" data-back="blue">
+  <header class="bar">
+    <h1>Klondike</h1>
+    <div class="readout">
+      <span>Score <b id="score">0</b></span>
+      <span>Moves <b id="moves">0</b></span>
+      <span>Time <b id="time">0:00</b></span>
+    </div>
+  </header>
+
+  <main id="board" aria-label="Klondike board">
+    <div class="row top" id="top"></div>
+    <div class="row" id="tableau"></div>
+  </main>
+
+  <footer class="bar controls">
+    <button id="btn-new">New</button>
+    <button id="btn-undo">Undo</button>
+    <button id="btn-hint">Hint</button>
+    <button id="btn-daily">Daily</button>
+    <button id="btn-stats">Stats</button>
+    <button id="btn-settings">Options</button>
+  </footer>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="drag-layer"></div>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h2>Options</h2>
+      <fieldset>
+        <legend>Draw</legend>
+        <label><input type="radio" name="draw" value="1"> Draw 1</label>
+        <label><input type="radio" name="draw" value="3"> Draw 3</label>
+      </fieldset>
+      <label class="field">Scoring
+        <select name="scoring">
+          <option value="standard">Standard</option>
+          <option value="vegas">Vegas</option>
+          <option value="none">None</option>
+        </select>
+      </label>
+      <label class="field">Passes through the stock
+        <select name="redeals">
+          <option value="-1">Unlimited</option>
+          <option value="2">3 passes</option>
+          <option value="0">1 pass</option>
+        </select>
+      </label>
+      <label class="field">Table
+        <select name="table">
+          <option value="green">Green felt</option>
+          <option value="navy">Navy</option>
+          <option value="charcoal">Charcoal</option>
+        </select>
+      </label>
+      <label class="field">Card back
+        <select name="back">
+          <option value="blue">Blue</option>
+          <option value="red">Red</option>
+          <option value="purple">Purple</option>
+        </select>
+      </label>
+      <p class="note">Draw, scoring and passes apply to the next deal.</p>
+      <menu>
+        <button value="cancel" class="ghost">Cancel</button>
+        <button value="ok" class="primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="stats">
+    <form method="dialog">
+      <h2>Statistics</h2>
+      <div id="stats-body"></div>
+      <menu>
+        <button type="button" id="stats-reset" class="ghost">Reset</button>
+        <button value="ok" class="primary">Close</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="win">
+    <form method="dialog">
+      <h2>You won! 🎉</h2>
+      <div id="win-body"></div>
+      <menu>
+        <button value="ok" class="primary" id="win-new">New game</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="src/ui/main.js"></script>
+</body>
+</html>
