@@ -2,7 +2,7 @@
 
 A single-file, no-build web/mobile map app for planning a road trip. No API keys.
 
-Open `index.html` through any static server (e.g. `python3 -m http.server` inside this folder), then open `http://localhost:8000`.
+Serve it over http (not by double-clicking the file, which sends no Referer and gets blocked by Nominatim). Use any static server (e.g. `python3 -m http.server` inside this folder), then open `http://localhost:8000`.
 
 ## What it does
 - Add stops by searching a place or clicking the map; drag the list to reorder, drag pins to move.
@@ -16,7 +16,7 @@ Open `index.html` through any static server (e.g. `python3 -m http.server` insid
 ## Free services used (keyless, light personal use only)
 | Need | Service |
 |---|---|
-| Map | MapLibre GL + OpenStreetMap tiles |
+| Map | MapLibre GL + OpenFreeMap vector tiles (OSM data; the openstreetmap.org tile servers forbid app use) |
 | Routing | OSRM public demo server |
 | Geocoding | Nominatim |
 | Gas stations | Overpass API (OSM) |
