@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Road Trip Planner</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1c2330; --muted: #6b7587; --line: #e2e6ec;
+    --accent: #2563eb; --accent-ink: #fff; --warn: #b45309; --warn-bg: #fef3c7;
+    --fuel: #16a34a; --night: #7c3aed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11151c; --panel: #1a202b; --ink: #e8ecf3; --muted: #93a0b5; --line: #2a3342;
+      --accent: #5b8def; --warn: #fbbf24; --warn-bg: #3a2d0b; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  #app { display: grid; grid-template-columns: 380px 1fr; height: 100%; }
+  #panel { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 14px; }
+  #map { height: 100%; width: 100%; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  input, select, button { font: inherit; color: inherit; }
+  input, select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; width: 100%; min-width: 0; }
+  button { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+  label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  #results { margin: 0 0 6px; padding: 0; list-style: none; }
+  #results li { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 4px; cursor: pointer; font-size: 13px; }
+  #results li:hover { border-color: var(--accent); }
+  #stops { list-style: none; margin: 0; padding: 0; }
+  .stop { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 4px; background: var(--bg); }
+  .stop.dragover { border-color: var(--accent); }
+  .badge { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; display: grid; place-items: center; flex: none; }
+  .stop .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .stop .handle { cursor: grab; color: var(--muted); user-select: none; }
+  .stop button { padding: 2px 7px; }
+  .leg { margin: 0 0 4px 30px; font-size: 12px; color: var(--muted); }
+  .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .stat b { display: block; font-size: 17px; }
+  .stat span { font-size: 11px; color: var(--muted); }
+  .plan { list-style: none; padding: 0; margin: 0; }
+  .plan li { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+  .plan .tag { display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #fff; border-radius: 4px; padding: 1px 5px; margin-right: 6px; }
+  .tag.fuel { background: var(--fuel); } .tag.night { background: var(--night); } .tag.warn { background: #b45309; } .tag.stop { background: var(--accent); }
+  .status { color: var(--muted); font-size: 12px; min-height: 16px; margin: 4px 0; }
+  .foot { color: var(--muted); font-size: 11px; margin: 20px 0 6px; }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); height: 34px; }
+  .toggle input { width: auto; }
+  .pin { width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 600; font-size: 12px; display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+  .pin.sq { border-radius: 6px; width: 22px; height: 22px; }
+  @media (max-width: 760px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: 48vh 1fr; }
+    #map { order: -1; }
+    #panel { border-right: 0; border-top: 1px solid var(--line); padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>Road Trip Planner</h1>
+    <div class="sub">Proof of concept · free, keyless APIs · click the map or search to add stops</div>
+
+    <h2>Stops</h2>
+    <div class="row">
+      <input id="q" placeholder="Search a place (Enter)" autocomplete="off">
+      <button id="searchBtn">Search</button>
+    </div>
+    <ul id="results"></ul>
+    <ul id="stops"></ul>
+    <div class="row" style="margin-top:6px">
+      <button id="clearBtn">Clear all</button>
+      <button id="reverseBtn">Reverse</button>
+    </div>
+
+    <h2>Vehicle</h2>
+    <div class="grid2">
+      <div><label>Year</label><select id="vYear"><option value="">—</option></select></div>
+      <div><label>Make</label><select id="vMake" disabled></select></div>
+    </div>
+    <div class="grid2">
+      <div><label>Model</label><select id="vModel" disabled></select></div>
+      <div><label>Variant</label><select id="vOpt" disabled></select></div>
+    </div>
+    <div class="status" id="vStatus">Pick a vehicle for EPA mpg, or type your own below.</div>
+    <div class="grid2">
+      <div><label>MPG (real-world)</label><input id="mpg" type="number" min="1" step="0.1" value="25"></div>
+      <div><label>Tank (gal)</label><input id="tank" type="number" min="1" step="0.5" value="14"></div>
+    </div>
+    <div class="grid2">
+      <div><label>Gas price ($/gal)</label><input id="price" type="number" min="0" step="0.01" value="3.10"></div>
+      <div><label>Refuel when tank at (%)</label><input id="reserve" type="number" min="5" max="50" step="5" value="20"></div>
+    </div>
+
+    <h2>Pacing</h2>
+    <div class="grid2">
+      <div><label>Max driving per day (hrs)</label><input id="dayHrs" type="number" min="1" step="0.5" value="7"></div>
+      <div><label>&nbsp;</label>
+        <div class="toggle"><input id="doFuel" type="checkbox" checked><span>Find fuel stops</span></div></div>
+    </div>
+    <button class="primary" id="planBtn" style="width:100%">Plan trip</button>
+    <div class="status" id="status"></div>
+
+    <div id="out" hidden>
+      <h2>Trip summary</h2>
+      <div class="summary" id="summary"></div>
+      <h2>Itinerary</h2>
+      <ul class="plan" id="plan"></ul>
+      <h2>Export</h2>
+      <div class="row">
+        <button id="gmapsBtn">Open in Google Maps</button>
+        <button id="copyBtn">Copy JSON</button>
+      </div>
+    </div>
+
+    <div class="foot">
+      Map © OpenStreetMap contributors · routing: OSRM public demo · geocoding: Nominatim ·
+      stations: OpenStreetMap via Overpass (no live prices — use the $/gal field) · mpg: fueleconomy.gov.
+      Public demo servers are for light, personal use.
+    </div>
+  </aside>
+  <div id="map"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
+<script>
+"use strict";
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const MI = 1609.344;
+const fmtMi = m => (m / MI).toFixed(m / MI < 100 ? 1 : 0) + " mi";
+const fmtTime = s => { const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h}h ${m}m` : `${m}m`; };
+const money = n => "$" + n.toFixed(2);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const setStatus = t => { $("status").textContent = t || ""; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const toRad = d => d * Math.PI / 180;
+function hav(a, b) { // [lon,lat] -> meters
+  const R = 6371000, dLat = toRad(b[1] - a[1]), dLon = toRad(b[0] - a[0]);
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+async function getJSON(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(`${new URL(url).host} returned ${r.status}`);
+  return r.json();
+}
+
+// ---------- state ----------
+let stops = [];
+try { stops = JSON.parse(localStorage.getItem("rt.stops") || "[]"); } catch (e) { stops = []; }
+let route = null;          // {coords, cum, legs, dist, dur}
+const stopMarkers = [];
+const overlayMarkers = [];
+const save = () => { try { localStorage.setItem("rt.stops", JSON.stringify(stops)); } catch (e) { /* storage blocked */ } };
+
+// ---------- map ----------
+const map = new maplibregl.Map({
+  container: "map",
+  style: {
+    version: 8,
+    sources: { osm: { type: "raster", tileSize: 256, maxzoom: 19,
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      attribution: "© OpenStreetMap contributors" } },
+    layers: [{ id: "osm", type: "raster", source: "osm" }]
+  },
+  center: [-96.5, 31], zoom: 4.5
+});
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), "top-right");
+function addRouteLayers() {
+  if (map.getSource("route")) return;
+  map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({ id: "route-casing", type: "line", source: "route", paint: { "line-color": "#ffffff", "line-width": 8 }, layout: { "line-cap": "round", "line-join": "round" } });
+  map.addLayer({ id: "route-line", type: "line", source: "route", paint: { "line-color": "#2563eb", "line-width": 5 }, layout: { "line-cap": "round", "line-join": "round" } });
+}
+map.on("style.load", addRouteLayers);
+map.on("click", e => addStop({ name: `${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`, lon: e.lngLat.lng, lat: e.lngLat.lat }, true));
+
+function pin(label, color, square) {
+  const el = document.createElement("div");
+  el.className = "pin" + (square ? " sq" : "");
+  el.style.background = color; el.textContent = label;
+  return el;
+}
+
+// ---------- stops ----------
+async function addStop(s, reverseName) {
+  invalidate(); stops.push(s); save(); render();
+  if (reverseName) { // swap the coordinate label for a real place name
+    try {
+      const j = await getJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&lat=${s.lat}&lon=${s.lon}`);
+      if (j && j.display_name) { s.name = j.display_name.split(",").slice(0, 2).join(",").trim(); save(); render(); }
+    } catch (e) { /* keep coordinates */ }
+  }
+}
+
+function render() {
+  const ul = $("stops"); ul.innerHTML = "";
+  stops.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.className = "stop"; li.draggable = true;
+    li.innerHTML = `<span class="handle">⋮⋮</span><span class="badge">${i + 1}</span><span class="name" title="${esc(s.name)}">${esc(s.name)}</span><button title="Remove">✕</button>`;
+    li.querySelector("button").onclick = () => { invalidate(); stops.splice(i, 1); save(); render(); };
+    li.querySelector(".name").onclick = () => map.flyTo({ center: [s.lon, s.lat], zoom: Math.max(map.getZoom(), 9) });
+    li.ondragstart = e => e.dataTransfer.setData("text/plain", i);
+    li.ondragover = e => { e.preventDefault(); li.classList.add("dragover"); };
+    li.ondragleave = () => li.classList.remove("dragover");
+    li.ondrop = e => {
+      e.preventDefault();
+      const from = +e.dataTransfer.getData("text/plain");
+      if (from !== i) { invalidate(); stops.splice(i, 0, stops.splice(from, 1)[0]); save(); render(); }
+    };
+    ul.appendChild(li);
+    if (route && route.legs[i]) {
+      const l = route.legs[i], d = document.createElement("li");
+      d.className = "leg";
+      d.textContent = `↓ ${fmtMi(l.dist)} · ${fmtTime(l.dur)} · ${l.gal.toFixed(1)} gal · ${money(l.cost)}`;
+      ul.appendChild(d);
+    }
+  });
+  stopMarkers.splice(0).forEach(m => m.remove());
+  stops.forEach((s, i) => {
+    const m = new maplibregl.Marker({ element: pin(i + 1, "#2563eb"), draggable: true }).setLngLat([s.lon, s.lat]).addTo(map);
+    m.on("dragend", () => { const p = m.getLngLat(); invalidate(); s.lon = p.lng; s.lat = p.lat; s.name = `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`; save(); render(); });
+    stopMarkers.push(m);
+  });
+}
+
+function invalidate() { // stop list changed: drop the stale route
+  route = null; $("out").hidden = true;
+  overlayMarkers.splice(0).forEach(m => m.remove());
+  const src = map.getSource && map.getSource("route");
+  if (src) src.setData({ type: "FeatureCollection", features: [] });
+}
+
+$("clearBtn").onclick = () => { invalidate(); stops = []; save(); render(); setStatus(""); };
+$("reverseBtn").onclick = () => { invalidate(); stops.reverse(); save(); render(); };
+
+// ---------- geocoding ----------
+async function search() {
+  const q = $("q").value.trim(); if (!q) return;
+  const ul = $("results"); ul.innerHTML = "<li>Searching…</li>";
+  try {
+    const j = await getJSON(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(q)}`);
+    ul.innerHTML = j.length ? "" : "<li>No results</li>";
+    j.forEach(r => {
+      const li = document.createElement("li"); li.textContent = r.display_name;
+      li.onclick = () => {
+        ul.innerHTML = ""; $("q").value = "";
+        addStop({ name: r.display_name.split(",").slice(0, 2).join(",").trim(), lon: +r.lon, lat: +r.lat });
+        map.flyTo({ center: [+r.lon, +r.lat], zoom: Math.max(map.getZoom(), 8) });
+      };
+      ul.appendChild(li);
+    });
+  } catch (e) { ul.innerHTML = `<li>${esc(e.message)}</li>`; }
+}
+$("searchBtn").onclick = search;
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") search(); });
+
+// ---------- vehicle (fueleconomy.gov) ----------
+const FE = "https://www.fueleconomy.gov/ws/rest/vehicle";
+const feGet = path => getJSON(FE + path, { headers: { Accept: "application/json" } });
+const menuItems = j => { const m = j && j.menuItem; return !m ? [] : Array.isArray(m) ? m : [m]; };
+function fill(sel, list, placeholder) {
+  sel.innerHTML = `<option value="">${placeholder}</option>` + list.map(i => `<option value="${esc(i.value)}">${esc(i.text)}</option>`).join("");
+  sel.disabled = !list.length;
+}
+const vFail = () => { $("vStatus").textContent = "mpg lookup unavailable — enter mpg manually."; };
+(async function initYears() {
+  try {
+    const ys = menuItems(await feGet("/menu/year")).slice(0, 30);
+    $("vYear").innerHTML = `<option value="">—</option>` + ys.map(y => `<option>${esc(y.value)}</option>`).join("");
+  } catch (e) { vFail(); }
+})();
+$("vYear").onchange = async () => {
+  fill($("vMake"), [], ""); fill($("vModel"), [], ""); fill($("vOpt"), [], "");
+  if (!$("vYear").value) return;
+  try { fill($("vMake"), menuItems(await feGet(`/menu/make?year=${$("vYear").value}`)), "Make"); } catch (e) { vFail(); }
+};
+$("vMake").onchange = async () => {
+  fill($("vModel"), [], ""); fill($("vOpt"), [], "");
+  if (!$("vMake").value) return;
+  try { fill($("vModel"), menuItems(await feGet(`/menu/model?year=${$("vYear").value}&make=${encodeURIComponent($("vMake").value)}`)), "Model"); } catch (e) { vFail(); }
+};
+$("vModel").onchange = async () => {
+  fill($("vOpt"), [], "");
+  if (!$("vModel").value) return;
+  try {
+    const o = menuItems(await feGet(`/menu/options?year=${$("vYear").value}&make=${encodeURIComponent($("vMake").value)}&model=${encodeURIComponent($("vModel").value)}`));
+    fill($("vOpt"), o, "Variant");
+    if (o.length === 1) { $("vOpt").value = o[0].value; $("vOpt").onchange(); }
+  } catch (e) { vFail(); }
+};
+$("vOpt").onchange = async () => {
+  if (!$("vOpt").value) return;
+  try {
+    const v = await feGet(`/${$("vOpt").value}`);
+    $("vStatus").textContent = `EPA: ${v.city08} city / ${v.highway08} hwy / ${v.comb08} combined mpg · ${v.fuelType1}. Using highway mpg — edit if needed.`;
+    if (+v.highway08 > 0) $("mpg").value = v.highway08;
+  } catch (e) { vFail(); }
+};
+
+// ---------- routing (OSRM) ----------
+async function fetchRoute() {
+  const coords = stops.map(s => `${s.lon},${s.lat}`).join(";");
+  const j = await getJSON(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`);
+  if (j.code !== "Ok") throw new Error("Routing failed: " + (j.message || j.code));
+  const r = j.routes[0], pts = r.geometry.coordinates;
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + hav(pts[i - 1], pts[i]));
+  const scale = cum[cum.length - 1] > 0 ? r.distance / cum[cum.length - 1] : 1; // align polyline length with OSRM's
+  for (let i = 0; i < cum.length; i++) cum[i] *= scale;
+  const legs = r.legs.map(l => ({ dist: l.distance, dur: l.duration }));
+  return { coords: pts, cum, legs, dist: r.distance, dur: r.duration };
+}
+function pointAt(dist) { // [lon,lat] at distance along the route (m)
+  const { cum, coords } = route;
+  let lo = 0, hi = cum.length - 1;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < dist) lo = mid + 1; else hi = mid; }
+  return coords[lo];
+}
+
+// ---------- fuel stops (Overpass / OpenStreetMap) ----------
+const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
+async function overpass(query) {
+  let last;
+  for (const ep of OVERPASS) {
+    try {
+      const r = await fetch(ep, { method: "POST", body: "data=" + encodeURIComponent(query), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+      if (r.ok) return await r.json();
+      last = new Error(`${new URL(ep).host} returned ${r.status}`);
+    } catch (e) { last = e; }
+  }
+  throw last || new Error("Overpass unavailable");
+}
+async function findStations() {
+  const SPACING = 30000, RADIUS = 3000, CHUNK = 8;
+  const samples = [];
+  for (let d = 0; d <= route.dist; d += SPACING) samples.push(pointAt(d));
+  if (samples.length > 160) throw new Error("Trip too long for the demo fuel search (limit ≈ 4,800 km).");
+  const found = new Map();
+  for (let i = 0; i < samples.length; i += CHUNK) {
+    setStatus(`Searching for gas stations… ${Math.min(i + CHUNK, samples.length)}/${samples.length} sample points`);
+    const around = samples.slice(i, i + CHUNK).map(p => `nwr["amenity"="fuel"](around:${RADIUS},${p[1]},${p[0]});`).join("");
+    const j = await overpass(`[out:json][timeout:40];(${around});out center tags;`);
+    j.elements.forEach(e => {
+      const lat = e.lat ?? (e.center && e.center.lat), lon = e.lon ?? (e.center && e.center.lon);
+      if (lat != null && lon != null) {
+        const t = e.tags || {};
+        found.set(e.type + e.id, { lat, lon, name: t.name || t.brand || "Gas station" });
+      }
+    });
+    if (i + CHUNK < samples.length) await sleep(1100); // be polite to the shared server
+  }
+  // project each station onto the route (nearest vertex)
+  const out = [];
+  for (const s of found.values()) {
+    let best = Infinity, bi = 0;
+    for (let k = 0; k < route.coords.length; k++) {
+      const c = route.coords[k], dx = c[0] - s.lon, dy = c[1] - s.lat, d = dx * dx + dy * dy;
+      if (d < best) { best = d; bi = k; }
+    }
+    const off = hav(route.coords[bi], [s.lon, s.lat]);
+    if (off <= 3000) out.push({ ...s, pos: route.cum[bi], off });
+  }
+  return out.sort((a, b) => a.pos - b.pos);
+}
+function planFuel(stations, usable, mpg) { // greedy: farthest reachable station each time
+  const picks = [], warnings = [];
+  let at = 0;
+  while (route.dist - at > usable) {
+    const reach = stations.filter(s => s.pos > at + 1 && s.pos <= at + usable);
+    if (!reach.length) { warnings.push({ pos: at + usable, text: `No gas stations found between mile ${Math.round(at / MI)} and ${Math.round((at + usable) / MI)} — you may run short.` }); break; }
+    const pick = reach[reach.length - 1];
+    picks.push({ ...pick, gallons: (pick.pos - at) / MI / mpg });
+    at = pick.pos;
+  }
+  return { picks, warnings };
+}
+
+// ---------- plan ----------
+async function plan() {
+  if (stops.length < 2) { setStatus("Add at least two stops."); return; }
+  const mpg = +$("mpg").value, tank = +$("tank").value, price = +$("price").value;
+  const reservePct = +$("reserve").value, dayHrs = +$("dayHrs").value;
+  if (!(mpg > 0 && tank > 0 && price >= 0 && dayHrs > 0)) { setStatus("Check the vehicle and pacing numbers."); return; }
+  $("planBtn").disabled = true; overlayMarkers.splice(0).forEach(m => m.remove());
+  try {
+    setStatus("Routing…");
+    route = await fetchRoute();
+    route.legs.forEach(l => { l.gal = l.dist / MI / mpg; l.cost = l.gal * price; });
+    addRouteLayers();
+    map.getSource("route").setData({ type: "Feature", geometry: { type: "LineString", coordinates: route.coords } });
+    const b = new maplibregl.LngLatBounds(); route.coords.forEach(c => b.extend(c));
+    map.fitBounds(b, { padding: 60, maxZoom: 12 });
+
+    const itin = []; // itinerary entries, sorted by distance along the route
+    const totalGal = route.dist / MI / mpg;
+
+    // overnight splits by driving-time budget (uses each leg's own average speed)
+    const budget = dayHrs * 3600; let acc = 0, base = 0, day = 1;
+    route.legs.forEach(l => {
+      const speed = l.dur > 0 ? l.dist / l.dur : 0; // m/s
+      let legLeft = l.dur, legPos = base;
+      while (speed > 0 && acc + legLeft > budget + 1) {
+        const take = budget - acc;
+        legPos += take * speed;
+        itin.push({ kind: "night", pos: legPos, text: `Overnight after day ${day} (~${dayHrs}h of driving)` });
+        legLeft -= take; acc = 0; day++;
+      }
+      acc += legLeft; base += l.dist;
+    });
+
+    // fuel stops
+    const fuelCost = totalGal * price; let fuelNote = "";
+    const usable = tank * mpg * (1 - reservePct / 100) * MI;
+    if ($("doFuel").checked && route.dist > usable) {
+      try {
+        const stations = await findStations();
+        const { picks, warnings } = planFuel(stations, usable, mpg);
+        picks.forEach(p => itin.push({ kind: "fuel", pos: p.pos, ll: [p.lon, p.lat], text: `${p.name} — fill ≈ ${p.gallons.toFixed(1)} gal (${money(p.gallons * price)}), ${(p.off / MI).toFixed(1)} mi off route` }));
+        warnings.forEach(w => itin.push({ kind: "warn", pos: w.pos, text: w.text }));
+        fuelNote = `${stations.length} stations found along the route`;
+      } catch (e) { itin.push({ kind: "warn", pos: 0, text: "Fuel search failed: " + e.message }); }
+    } else if ($("doFuel").checked) {
+      fuelNote = "Whole trip fits in one tank (with your reserve).";
+    }
+
+    itin.sort((a, b) => a.pos - b.pos);
+    itin.forEach(it => {
+      it.ll = it.ll || pointAt(it.pos);
+      if (it.kind === "warn") return;
+      const m = new maplibregl.Marker({ element: it.kind === "fuel" ? pin("⛽", "#16a34a", true) : pin("☾", "#7c3aed", true) })
+        .setLngLat(it.ll).setPopup(new maplibregl.Popup({ offset: 14 }).setText(it.text)).addTo(map);
+      overlayMarkers.push(m);
+    });
+
+    renderSummary(totalGal, fuelCost, itin, fuelNote);
+    render(); setStatus("");
+  } catch (e) {
+    setStatus("Error: " + e.message);
+  } finally { $("planBtn").disabled = false; }
+}
+
+function renderSummary(totalGal, fuelCost, itin, fuelNote) {
+  const nights = itin.filter(i => i.kind === "night").length;
+  $("summary").innerHTML = [
+    [fmtMi(route.dist), "distance"], [fmtTime(route.dur), "driving time"],
+    [totalGal.toFixed(1) + " gal", "fuel needed"], [money(fuelCost), "fuel cost"],
+    [String(nights + 1), "days at your pace"], [String(itin.filter(i => i.kind === "fuel").length), "fuel stops"]
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+  const ul = $("plan"); ul.innerHTML = "";
+  const li = (html, ll) => { const e = document.createElement("li"); e.innerHTML = html; if (ll) e.onclick = () => map.flyTo({ center: ll, zoom: 11 }); ul.appendChild(e); };
+  li(`<span class="tag stop">Start</span>${esc(stops[0].name)}`, [stops[0].lon, stops[0].lat]);
+  itin.forEach(it => {
+    const label = it.kind === "fuel" ? "Fuel" : it.kind === "night" ? "Night" : "Heads up";
+    li(`<span class="tag ${it.kind}">${label}</span><b>mi ${Math.round(it.pos / MI)}</b> · ${esc(it.text)}`, it.ll);
+  });
+  stops.slice(1).forEach((s, i) => li(`<span class="tag stop">${i === stops.length - 2 ? "End" : "Stop " + (i + 2)}</span>${esc(s.name)}`, [s.lon, s.lat]));
+  if (fuelNote) li(`<span style="color:var(--muted)">${esc(fuelNote)}</span>`);
+  $("out").hidden = false;
+}
+
+$("planBtn").onclick = plan;
+render();
+
+// ---------- export ----------
+$("gmapsBtn").onclick = () => {
+  if (stops.length < 2) return;
+  const f = s => `${s.lat},${s.lon}`;
+  const via = stops.slice(1, -1).map(f).join("|");
+  const u = `https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${f(stops[0])}&destination=${f(stops[stops.length - 1])}` + (via ? `&waypoints=${encodeURIComponent(via)}` : "");
+  window.open(u, "_blank", "noopener");
+};
+$("copyBtn").onclick = async () => {
+  const data = JSON.stringify({ stops, mpg: +$("mpg").value, tank: +$("tank").value, price: +$("price").value }, null, 2);
+  try { await navigator.clipboard.writeText(data); setStatus("Trip JSON copied."); } catch (e) { setStatus("Copy failed."); }
+};
+</script>
+</body>
+</html>
