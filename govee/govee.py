@@ -6,13 +6,27 @@ Usage:
   govee.py devices             # list cloud devices (needs GOVEE_API_KEY) -> device IDs
   govee.py run <action>        # run an action defined in config.json
   govee.py run <action> --dry  # print what would be sent
+  govee.py schedule            # show today's computed run times (incl. sunset)
+  govee.py daemon              # long-running scheduler (what launchd keeps alive)
 Stdlib only; Python 3.8+.
 """
-import json, os, socket, struct, sys, time, urllib.request, uuid
+import datetime as dt, json, math, os, socket, struct, sys, time, urllib.request, uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.environ.get("GOVEE_CONFIG", os.path.join(HERE, "config.json"))
 CLOUD = "https://openapi.api.govee.com/router/api/v1"
+
+
+def _load_env():
+    p = os.path.join(HERE, ".env")
+    if os.path.exists(p):
+        for line in open(p):
+            k, _, v = line.strip().partition("=")
+            if k and not k.startswith("#"):
+                os.environ.setdefault(k, v.strip().strip('"'))
+
+
+_load_env()
 
 
 # ---------- LAN (UDP) ----------
@@ -101,6 +115,77 @@ def send(dry, kind, target, what, val, fn):
         fn()
 
 
+# ---------- Sun times (NOAA "sunrise equation", stdlib only) ----------
+def sun_event(day, lat, lon, kind):
+    """Local-time datetime of 'sunrise' or 'sunset' on `day` (a date), or None (polar day/night)."""
+    n = day.toordinal() + 1721424.5 + 0.5 - 2451545.0
+    jstar = n - lon / 360.0
+    m = math.radians((357.5291 + 0.98560028 * jstar) % 360)
+    c = 1.9148 * math.sin(m) + 0.02 * math.sin(2 * m) + 0.0003 * math.sin(3 * m)
+    lam = math.radians((math.degrees(m) + c + 180 + 102.9372) % 360)
+    jt = 2451545.0 + jstar + 0.0053 * math.sin(m) - 0.0069 * math.sin(2 * lam)
+    sin_d = math.sin(lam) * math.sin(math.radians(23.4397))
+    cos_d = math.cos(math.asin(sin_d))
+    cos_w = (math.sin(math.radians(-0.833)) - math.sin(math.radians(lat)) * sin_d) / (math.cos(math.radians(lat)) * cos_d)
+    if not -1 <= cos_w <= 1:
+        return None
+    w = math.degrees(math.acos(cos_w))
+    j = jt + (w if kind == "sunset" else -w) / 360.0
+    utc = dt.datetime(2000, 1, 1, 12, tzinfo=dt.timezone.utc) + dt.timedelta(days=j - 2451545.0)
+    return utc.astimezone()  # system local timezone
+
+
+def entry_time(entry, day, cfg):
+    """When does this schedule entry fire on `day`? (local aware datetime, or None)"""
+    if "sun" in entry:
+        loc = cfg["location"]
+        t = sun_event(day, loc["lat"], loc["lon"], entry["sun"])
+        return t + dt.timedelta(minutes=entry.get("offset_min", 0)) if t else None
+    h, m = map(int, entry["time"].split(":"))
+    return dt.datetime.combine(day, dt.time(h, m)).astimezone()
+
+
+def run_action(cfg, name, dry=False):
+    for step in cfg["actions"][name]:
+        dev = cfg["devices"][step["device"]]
+        (lan_apply if dev["mode"] == "lan" else cloud_apply)(dev, step, dry)
+
+
+def show_schedule(cfg):
+    today = dt.date.today()
+    for e in sorted(cfg["schedule"], key=lambda e: entry_time(e, today, cfg) or dt.datetime.max.astimezone()):
+        t = entry_time(e, today, cfg)
+        how = f"{e['sun']}{e.get('offset_min', 0):+d}m" if "sun" in e else e["time"]
+        print(f"{t.strftime('%H:%M') if t else '--:--'}  {e['action']:<16} ({how})")
+
+
+def daemon(catchup_min=20):
+    """Check every 20s; fire due entries once per day. Runs missed entries if the Mac was asleep
+    for less than `catchup_min` minutes past the scheduled time."""
+    fired, last_day = set(), None
+    while True:
+        cfg = json.load(open(CONFIG))  # re-read each loop: edit config without restarting
+        now = dt.datetime.now().astimezone()
+        today = now.date()
+        if today != last_day:
+            fired, last_day = set(), today
+            print(f"--- {today} ---", flush=True)
+            show_schedule(cfg)
+            sys.stdout.flush()
+        for i, e in enumerate(cfg["schedule"]):
+            t = entry_time(e, today, cfg)
+            key = (i, e["action"])
+            if t and key not in fired and t <= now:
+                fired.add(key)
+                if now - t <= dt.timedelta(minutes=catchup_min):
+                    print(f"{now:%H:%M:%S} firing {e['action']}", flush=True)
+                    try:
+                        run_action(cfg, e["action"])
+                    except Exception as ex:  # keep the daemon alive
+                        print("  ERROR:", ex, flush=True)
+        time.sleep(20)
+
+
 # ---------- main ----------
 def main():
     a = sys.argv[1:]
@@ -112,11 +197,11 @@ def main():
         for d in cloud("GET", "/user/devices").get("data", []):
             print(d["sku"], d["device"], d.get("deviceName", ""))
     elif a[0] == "run" and len(a) > 1:
-        dry = "--dry" in a
-        cfg = json.load(open(CONFIG))
-        for step in cfg["actions"][a[1]]:
-            dev = cfg["devices"][step["device"]]
-            (lan_apply if dev["mode"] == "lan" else cloud_apply)(dev, step, dry)
+        run_action(json.load(open(CONFIG)), a[1], "--dry" in a)
+    elif a[0] == "schedule":
+        show_schedule(json.load(open(CONFIG)))
+    elif a[0] == "daemon":
+        daemon()
     else:
         sys.exit(__doc__)
 

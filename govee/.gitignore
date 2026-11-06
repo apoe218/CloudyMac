@@ -1,1 +1,4 @@
 config.json
+config.json.bak
+.env
+__pycache__/

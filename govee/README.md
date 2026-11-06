@@ -1,19 +1,32 @@
 # Govee automation (always-on Mac)
 
-- **Christmas Lights (H70C2)** -> LAN control (local UDP, no cloud).
-- **Lamps (H6002 x2)** -> Govee Cloud API (they have no LAN Control).
+- **Christmas Lights (H70C2)** -> LAN control (local UDP, no cloud), scheduled by **sunset**.
+- **Lamps (H6002 x2)** -> Govee Cloud API (no LAN Control on these).
 
-## Setup
-1. Govee Home app -> Christmas Lights -> Settings -> enable **LAN Control**.
-2. Give the lights a DHCP reservation in your router so the IP never changes.
-3. `python3 govee.py discover` -> copy the light's `ip`.
-4. Get a cloud API key at developer.govee.com (emailed to you), then:
-   `export GOVEE_API_KEY=...` and run `python3 govee.py devices` -> copy each lamp's `device_id`.
-5. `cp config.example.json config.json` and fill in IPs/IDs, actions, times.
-   (`config.json` is git-ignored; never commit your API key.)
-6. Test: `python3 govee.py run evening --dry`, then without `--dry`.
-7. Schedule: `GOVEE_API_KEY=... python3 install_schedule.py install`
-   Remove: `python3 install_schedule.py uninstall`. Logs: `/tmp/govee.log`.
+## Quick start (Mac)
+```bash
+git clone https://github.com/apoe218/CloudyMac.git && cd CloudyMac && git checkout claude/fancy-wares-village
+cd govee && bash setup.sh
+```
+Before running: in the Govee Home app enable **LAN Control** on the Christmas Lights, and give them a
+DHCP reservation in your router. `setup.sh` asks for your API key (saved to git-ignored `.env`, chmod 600),
+discovers the lights, writes `config.json`, and installs a launchd agent that keeps `govee.py daemon` running.
 
-Re-run `install_schedule.py install` after editing the schedule in config.json.
-The Mac must be awake at run times (System Settings -> Battery/Energy -> prevent sleep).
+## Schedule entries (config.json)
+```json
+{"action": "lights_on", "sun": "sunset",  "offset_min": -10}   // 10 min before sunset
+{"action": "night_off", "sun": "sunrise", "offset_min": 0}
+{"action": "bedtime",   "time": "22:00"}                       // fixed local time
+```
+Sun times are computed on the Mac for your `location` and system timezone (verified against known values).
+Edits to `config.json` are picked up automatically (no restart). If the Mac was asleep, an entry missed by
+less than 20 minutes still fires on wake.
+
+## Commands
+```
+python3 govee.py schedule         # today's times, incl. sunset
+python3 govee.py run lights_on    # fire an action now (add --dry to preview)
+python3 install_schedule.py status|install|uninstall
+tail -f ~/Library/Logs/govee.log
+```
+Keep the Mac from sleeping (System Settings -> Battery/Energy). Never commit `.env` or `config.json`.

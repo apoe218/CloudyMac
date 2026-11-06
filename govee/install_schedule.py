@@ -1,40 +1,43 @@
 #!/usr/bin/env python3
-"""Generate + load macOS launchd jobs from config.json's "schedule" (one per entry).
-Usage: install_schedule.py install | uninstall
+"""Install/remove ONE launchd agent that keeps `govee.py daemon` running (starts at login, restarts on crash).
+Usage: install_schedule.py install | uninstall | status
 """
-import json, os, plistlib, subprocess, sys
+import os, plistlib, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-AGENTS = os.path.expanduser("~/Library/LaunchAgents")
-PREFIX = "com.cloudymac.govee."
+LABEL = "com.cloudymac.govee"
+PLIST = os.path.expanduser(f"~/Library/LaunchAgents/{LABEL}.plist")
+DOMAIN = f"gui/{os.getuid()}"
+LOG = os.path.expanduser("~/Library/Logs/govee.log")
+
+
+def launchctl(*args):
+    return subprocess.run(["launchctl", *args], capture_output=True, text=True)
 
 
 def main():
-    cfg = json.load(open(os.path.join(HERE, "config.json")))
-    uid = str(os.getuid())
-    for old in [f for f in os.listdir(AGENTS) if f.startswith(PREFIX)] if os.path.isdir(AGENTS) else []:
-        subprocess.run(["launchctl", "bootout", f"gui/{uid}", os.path.join(AGENTS, old)], capture_output=True)
-        os.remove(os.path.join(AGENTS, old))
-    if sys.argv[1:] != ["install"]:
-        return print("uninstalled")
-    os.makedirs(AGENTS, exist_ok=True)
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"}
-    if os.environ.get("GOVEE_API_KEY"):
-        env["GOVEE_API_KEY"] = os.environ["GOVEE_API_KEY"]
-    for i, s in enumerate(cfg["schedule"]):
-        h, m = map(int, s["time"].split(":"))
-        label = f"{PREFIX}{s['action']}.{i}"
-        path = os.path.join(AGENTS, label + ".plist")
-        plistlib.dump({
-            "Label": label,
-            "ProgramArguments": [sys.executable or "/usr/bin/python3",
-                                 os.path.join(HERE, "govee.py"), "run", s["action"]],
-            "StartCalendarInterval": {"Hour": h, "Minute": m},
-            "StandardOutPath": "/tmp/govee.log", "StandardErrorPath": "/tmp/govee.log",
-            "EnvironmentVariables": env,
-        }, open(path, "wb"))
-        subprocess.run(["launchctl", "bootstrap", f"gui/{uid}", path], check=False)
-        print("installed", label, s["time"])
+    cmd = (sys.argv[1:] or ["status"])[0]
+    launchctl("bootout", f"{DOMAIN}/{LABEL}")  # ignore errors if not loaded
+    if cmd == "install":
+        os.makedirs(os.path.dirname(PLIST), exist_ok=True)
+        with open(PLIST, "wb") as f:
+            plistlib.dump({
+                "Label": LABEL,
+                "ProgramArguments": [sys.executable or "/usr/bin/python3", "-u", os.path.join(HERE, "govee.py"), "daemon"],
+                "WorkingDirectory": HERE,
+                "RunAtLoad": True, "KeepAlive": True,
+                "StandardOutPath": LOG, "StandardErrorPath": LOG,
+            }, f)
+        r = launchctl("bootstrap", DOMAIN, PLIST)
+        print("installed and started" if r.returncode == 0 else f"bootstrap failed: {r.stderr}")
+        print("log:", LOG)
+    elif cmd == "uninstall":
+        if os.path.exists(PLIST):
+            os.remove(PLIST)
+        print("uninstalled")
+    else:
+        r = launchctl("print", f"{DOMAIN}/{LABEL}")
+        print("running" if r.returncode == 0 else "not installed")
 
 
 main()

@@ -1,13 +1,16 @@
 {
+  "location": {"lat": 29.7604, "lon": -95.3698},
   "devices": {
     "christmas": {"mode": "lan",   "sku": "H70C2", "ip": "192.168.1.50"},
     "living":    {"mode": "cloud", "sku": "H6002", "device_id": "AA:BB:CC:DD:EE:FF:00:11"},
     "bedroom":   {"mode": "cloud", "sku": "H6002", "device_id": "11:22:33:44:55:66:77:88"}
   },
   "actions": {
-    "evening": [
-      {"device": "christmas", "power": true, "brightness": 80, "color": [255, 140, 40]},
-      {"device": "living",    "power": true, "brightness": 60, "kelvin": 2700}
+    "lights_on": [
+      {"device": "christmas", "power": true, "brightness": 80, "color": [255, 140, 40]}
+    ],
+    "lamps_evening": [
+      {"device": "living", "power": true, "brightness": 60, "kelvin": 2700}
     ],
     "bedtime": [
       {"device": "bedroom", "power": true, "brightness": 20, "kelvin": 2200},
@@ -19,8 +22,9 @@
     ]
   },
   "schedule": [
-    {"action": "evening",   "time": "17:30"},
-    {"action": "bedtime",   "time": "22:00"},
-    {"action": "night_off", "time": "23:30"}
+    {"action": "lights_on",     "sun": "sunset", "offset_min": -10},
+    {"action": "lamps_evening", "sun": "sunset", "offset_min": 0},
+    {"action": "bedtime",       "time": "22:00"},
+    {"action": "night_off",     "time": "23:30"}
   ]
 }
