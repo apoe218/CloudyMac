@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#c8102e">
+<meta name="theme-color" content="#0b0507">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Kop Daily</title>
-<meta name="description" content="Mobile-first hub for Liverpool FC senior men: stats, squad, news, injuries and history.">
+<meta name="description" content="Mobile-first hub for Liverpool FC senior men: live news, stats, squad, injuries and history.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon.svg">
@@ -15,9 +16,10 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="crest" aria-hidden="true">🔴</span><div><b>Kop Daily</b><small id="asof">Liverpool FC · Senior Men</small></div></div>
+  <div class="brand"><div class="logo" aria-hidden="true">KD</div><div><b>Kop Daily</b><div class="status" id="status"><span class="dot"></span><span id="stxt">Liverpool FC · Senior Men</span></div></div></div>
+  <button class="rf" id="refresh" aria-label="Refresh news">↻</button>
 </header>
-<main id="view" aria-live="polite"><p class="empty">Loading…</p></main>
+<main id="view" aria-live="polite"><div class="skel"></div><div class="skel"></div><div class="skel"></div></main>
 <nav class="tabs" aria-label="Sections">
   <a href="#/home" data-r="home"><i>🏠</i>Home</a>
   <a href="#/stats" data-r="stats"><i>📊</i>Stats</a>
