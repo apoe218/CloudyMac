@@ -1,0 +1,7 @@
+{
+  "updated": "2026-11-09",
+  "manager": "Andoni Iraola (per press reports, verify)",
+  "stadium": "Anfield · 61,276",
+  "next": { "opponent": "Manchester United", "competition": "Premier League", "date": "2026-11-22", "venue": "TBC", "note": "Date per Sports Mole preview; confirm on liverpoolfc.com" },
+  "note": "Seed data compiled from press reports around 9 Nov 2026. Edit the files in /data to update; news refreshes automatically via the GitHub Action."
+}

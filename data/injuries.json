@@ -1,0 +1,45 @@
+{
+ "note": "Return windows are estimates from press reports and change often. Confidence is my read of how consistent the sources are.",
+ "items": [
+  {
+   "n": "Dominik Szoboszlai",
+   "issue": "Knee, tests ahead of Hungary Nations League games",
+   "window": "Doubt for international duty; club availability TBC after tests",
+   "conf": "Low",
+   "src": "BBC Sport, 9 Nov 2026",
+   "url": "https://www.bbc.co.uk/sport/football/teams/liverpool"
+  },
+  {
+   "n": "Jeremie Frimpong",
+   "issue": "Not specified in sources",
+   "window": "Possible return around 22 Nov (vs Man Utd)",
+   "conf": "Medium",
+   "src": "Sports Mole, 4 Nov 2026",
+   "url": "https://www.sportsmole.co.uk/football/liverpool/injury-news/injuries-and-suspensions/latest-on-ekitike-and-frimpong-liverpool-injury-suspension-list-vs-fenerbahce_608230.html"
+  },
+  {
+   "n": "Conor Bradley",
+   "issue": "Rehab, ball work started",
+   "window": "Late Nov, not yet in team training",
+   "conf": "Medium",
+   "src": "Sports Mole / 3addedminutes",
+   "url": "https://www.3addedminutes.com/sport/football/liverpool/isak-gakpo-szoboszlai-latest-liverpool-injury-news-9281124"
+  },
+  {
+   "n": "Hugo Ekitiké",
+   "issue": "Achilles",
+   "window": "Late Nov to December; some reports say far longer",
+   "conf": "Low",
+   "src": "Sports Mole / 3addedminutes",
+   "url": "https://www.sportsmole.co.uk/football/liverpool/injury-news/injuries-and-suspensions/latest-on-ekitike-and-frimpong-liverpool-injury-suspension-list-vs-fenerbahce_608230.html"
+  },
+  {
+   "n": "Giovanni Leoni",
+   "issue": "Long-term",
+   "window": "November to late 2026",
+   "conf": "Low",
+   "src": "Walk On",
+   "url": "https://walkon.com/blog/liverpool-injury-news-expected-return-dates-alisson-jeremie-frimpong-giovanni-leoni/"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "competitions": [
+  {"id":"pl","name":"Premier League","status":"Position and record from mid-Oct 2026; goals and later matches not yet entered.",
+   "summary":{"pos":"5th","P":7,"W":3,"D":3,"L":1,"Pts":12,"GF":"–","GA":"–"},
+   "matches":[
+    {"date":"2026-10-17","h":"Brentford","a":"Liverpool","hs":1,"as":2},
+    {"date":"2026-10-11","h":"Liverpool","a":"Manchester City","hs":0,"as":3}
+   ],
+   "table":[],"scorers":[]},
+  {"id":"ucl","name":"Champions League","status":"League phase. Only the LASK result is entered; Fenerbahçe (matchday 4) and earlier games still to add.",
+   "summary":{"pos":"–","P":"–","W":"–","D":"–","L":"–","Pts":"–","GF":"–","GA":"–"},
+   "matches":[{"date":"2026-10-14","h":"LASK","a":"Liverpool","hs":3,"as":6}],
+   "table":[],"scorers":[]},
+  {"id":"fa","name":"FA Cup","status":"Third round is in January.","summary":null,"matches":[],"table":[],"scorers":[]},
+  {"id":"lc","name":"League Cup","status":"No data entered yet.","summary":null,"matches":[],"table":[],"scorers":[]}
+ ],
+ "table_format":"Each row: {\"pos\":1,\"team\":\"Name\",\"P\":0,\"W\":0,\"D\":0,\"L\":0,\"GD\":0,\"Pts\":0,\"me\":false}; scorers: {\"name\":\"\",\"g\":0,\"a\":0}"
+}

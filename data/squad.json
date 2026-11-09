@@ -1,0 +1,148 @@
+{
+ "note": "Squad is based on the 2025-26 group plus reported 2026 summer moves. Verify against liverpoolfc.com before relying on it.",
+ "players": [
+  {
+   "n": "Alisson Becker",
+   "pos": "GK",
+   "nat": "Brazil"
+  },
+  {
+   "n": "Giorgi Mamardashvili",
+   "pos": "GK",
+   "nat": "Georgia"
+  },
+  {
+   "n": "Virgil van Dijk",
+   "pos": "DEF",
+   "nat": "Netherlands",
+   "c": "Captain"
+  },
+  {
+   "n": "Jérémy Jacquet",
+   "pos": "DEF",
+   "nat": "France",
+   "new": "Signed from Rennes (~£55m, reported)"
+  },
+  {
+   "n": "Ronald Araújo",
+   "pos": "DEF",
+   "nat": "Uruguay",
+   "new": "On loan from Barcelona (reported)"
+  },
+  {
+   "n": "Giovanni Leoni",
+   "pos": "DEF",
+   "nat": "Italy",
+   "inj": true
+  },
+  {
+   "n": "Joe Gomez",
+   "pos": "DEF",
+   "nat": "England"
+  },
+  {
+   "n": "Milos Kerkez",
+   "pos": "DEF",
+   "nat": "Hungary"
+  },
+  {
+   "n": "Jeremie Frimpong",
+   "pos": "DEF",
+   "nat": "Netherlands",
+   "inj": true
+  },
+  {
+   "n": "Conor Bradley",
+   "pos": "DEF",
+   "nat": "N. Ireland",
+   "inj": true
+  },
+  {
+   "n": "Ryan Gravenberch",
+   "pos": "MID",
+   "nat": "Netherlands"
+  },
+  {
+   "n": "Alexis Mac Allister",
+   "pos": "MID",
+   "nat": "Argentina"
+  },
+  {
+   "n": "Dominik Szoboszlai",
+   "pos": "MID",
+   "nat": "Hungary",
+   "inj": true
+  },
+  {
+   "n": "Florian Wirtz",
+   "pos": "MID",
+   "nat": "Germany"
+  },
+  {
+   "n": "Curtis Jones",
+   "pos": "MID",
+   "nat": "England"
+  },
+  {
+   "n": "Wataru Endo",
+   "pos": "MID",
+   "nat": "Japan"
+  },
+  {
+   "n": "Víctor Muñoz",
+   "pos": "FWD",
+   "nat": "Spain",
+   "new": "Signed from Osasuna (~£34.5m, reported)"
+  },
+  {
+   "n": "Bradley Barcola",
+   "pos": "FWD",
+   "nat": "France",
+   "new": "Signed from PSG (£110-120m, reported)"
+  },
+  {
+   "n": "Cody Gakpo",
+   "pos": "FWD",
+   "nat": "Netherlands"
+  },
+  {
+   "n": "Alexander Isak",
+   "pos": "FWD",
+   "nat": "Sweden"
+  },
+  {
+   "n": "Hugo Ekitiké",
+   "pos": "FWD",
+   "nat": "France",
+   "inj": true
+  },
+  {
+   "n": "Federico Chiesa",
+   "pos": "FWD",
+   "nat": "Italy"
+  },
+  {
+   "n": "Rio Ngumoha",
+   "pos": "FWD",
+   "nat": "England"
+  }
+ ],
+ "departed": [
+  {
+   "n": "Mohamed Salah",
+   "to": "Trabzonspor (reported)"
+  },
+  {
+   "n": "Andy Robertson",
+   "to": "Tottenham, free"
+  },
+  {
+   "n": "Ibrahima Konaté",
+   "to": "Real Madrid, free (reported)"
+  },
+  {
+   "n": "Rhys Williams",
+   "to": "Released"
+  }
+ ]
+}
