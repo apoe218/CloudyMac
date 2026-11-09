@@ -1,5 +1,5 @@
 {
- "note": "Squad is based on the 2025-26 group plus reported 2026 summer moves. Verify against liverpoolfc.com before relying on it.",
+ "note": "Checked 9 Nov against press reports. Shirt numbers omitted. Alisson is out of contract in June 2027 and says he wants to stay.",
  "players": [
   {
    "n": "Alisson Becker",
@@ -27,13 +27,12 @@
    "n": "Ronald Araújo",
    "pos": "DEF",
    "nat": "Uruguay",
-   "new": "On loan from Barcelona (reported)"
+   "new": "Loan from Barcelona; ~£47m option decision at season end (reported)"
   },
   {
    "n": "Giovanni Leoni",
    "pos": "DEF",
-   "nat": "Italy",
-   "inj": true
+   "nat": "Italy"
   },
   {
    "n": "Joe Gomez",
@@ -48,14 +47,12 @@
   {
    "n": "Jeremie Frimpong",
    "pos": "DEF",
-   "nat": "Netherlands",
-   "inj": true
+   "nat": "Netherlands"
   },
   {
    "n": "Conor Bradley",
    "pos": "DEF",
-   "nat": "N. Ireland",
-   "inj": true
+   "nat": "N. Ireland"
   },
   {
    "n": "Ryan Gravenberch",
@@ -70,8 +67,7 @@
   {
    "n": "Dominik Szoboszlai",
    "pos": "MID",
-   "nat": "Hungary",
-   "inj": true
+   "nat": "Hungary"
   },
   {
    "n": "Florian Wirtz",
@@ -87,6 +83,11 @@
    "n": "Wataru Endo",
    "pos": "MID",
    "nat": "Japan"
+  },
+  {
+   "n": "Trey Nyoni",
+   "pos": "MID",
+   "nat": "England"
   },
   {
    "n": "Víctor Muñoz",
@@ -113,8 +114,7 @@
   {
    "n": "Hugo Ekitiké",
    "pos": "FWD",
-   "nat": "France",
-   "inj": true
+   "nat": "France"
   },
   {
    "n": "Federico Chiesa",

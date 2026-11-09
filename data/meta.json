@@ -6,8 +6,34 @@
   "opponent": "Manchester United",
   "competition": "Premier League",
   "date": "2026-11-22",
-  "venue": "TBC",
-  "note": "Date per Sports Mole preview; confirm on liverpoolfc.com"
+  "venue": "Anfield · 16:30 UK",
+  "note": "Confirmed on BBC Sport fixtures"
  },
- "note": "Stats, squad and injury windows are curated by hand in /data. News is live."
+ "note": "Verified 9 Nov 2026 against BBC Sport tables and fixtures and the club injury list (updated 6 Nov). News is live. Roster and honours are hand-curated in /data.",
+ "upcoming": [
+  {
+   "date": "2026-11-22",
+   "t": "Manchester United (H)",
+   "comp": "Premier League",
+   "k": "16:30"
+  },
+  {
+   "date": "2026-11-25",
+   "t": "Club Brugge (A)",
+   "comp": "Champions League",
+   "k": "20:00"
+  },
+  {
+   "date": "2026-11-29",
+   "t": "Everton (A)",
+   "comp": "Premier League",
+   "k": "12:00"
+  },
+  {
+   "date": "2026-12-14",
+   "t": "Bournemouth (H)",
+   "comp": "League Cup QF",
+   "k": "Week of 14 Dec"
+  }
+ ]
 }

@@ -10,8 +10,8 @@ const FEEDS = [
 const FILE = new URL('../data/news.json', import.meta.url);
 const dec = s => s.replaceAll('&amp;', '&').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&quot;', '"').replaceAll('&#39;', "'");
 const tag = (x, t) => dec((x.match(new RegExp(`<${t}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${t}>`)) || [])[1]?.trim() || '');
-async function get(f) {
-  const xml = process.env.FEED_FILE ? await readFile(process.env.FEED_FILE, 'utf8')
+async function get(f, i) {
+  const xml = process.env.FEED_DIR ? await readFile(`${process.env.FEED_DIR}/feed${i}.xml`, 'utf8') // offline testing
     : await (await fetch(f.url, { headers: { 'user-agent': 'kop-daily/1.0' } })).text();
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(([, x]) => {
     let title = tag(x, 'title'), src = f.src || tag(x, 'source');
@@ -21,7 +21,7 @@ async function get(f) {
   }).filter(i => i.title && /^https?:/.test(i.url)).slice(0, 15);
 }
 const fresh = [];
-for (const f of FEEDS) { try { fresh.push(...await get(f)); } catch (e) { console.error('feed failed', f.url, e.message); } if (process.env.FEED_FILE) break; }
+for (const [i, f] of FEEDS.entries()) { try { fresh.push(...await get(f, i)); } catch (e) { console.error('feed failed', f.url, e.message); } }
 if (!fresh.length) { console.error('No items parsed; leaving news.json untouched'); process.exit(0); }
 const old = JSON.parse(await readFile(FILE, 'utf8'));
 const manual = (old.items || []).filter(i => i.manual);

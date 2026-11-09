@@ -3,16 +3,16 @@
   {
    "id": "pl",
    "name": "Premier League",
-   "status": "Record as of mid-Oct (5th, 12 pts from 7); the 8 Nov win at Palace is added below but not yet in the totals. Goals not entered.",
+   "status": "Table from BBC Sport, updated 9 Nov 2026 15:26. The results list below is partial (not every match entered).",
    "summary": {
-    "pos": "5th",
-    "P": 7,
-    "W": 3,
+    "pos": "4th",
+    "P": 10,
+    "W": 5,
     "D": 3,
-    "L": 1,
-    "Pts": 12,
-    "GF": "–",
-    "GA": "–"
+    "L": 2,
+    "Pts": 18,
+    "GF": 14,
+    "GA": 10
    },
    "matches": [
     {
@@ -37,22 +37,243 @@
      "as": 3
     }
    ],
-   "table": [],
+   "table": [
+    {
+     "pos": 1,
+     "team": "Arsenal",
+     "P": 10,
+     "W": 9,
+     "D": 0,
+     "L": 1,
+     "GD": 10,
+     "Pts": 27,
+     "me": false
+    },
+    {
+     "pos": 2,
+     "team": "Brighton & Hove Albion",
+     "P": 10,
+     "W": 7,
+     "D": 1,
+     "L": 2,
+     "GD": 19,
+     "Pts": 22,
+     "me": false
+    },
+    {
+     "pos": 3,
+     "team": "Manchester City",
+     "P": 10,
+     "W": 7,
+     "D": 0,
+     "L": 3,
+     "GD": 8,
+     "Pts": 21,
+     "me": false
+    },
+    {
+     "pos": 4,
+     "team": "Liverpool",
+     "P": 10,
+     "W": 5,
+     "D": 3,
+     "L": 2,
+     "GD": 4,
+     "Pts": 18,
+     "me": true
+    },
+    {
+     "pos": 5,
+     "team": "Chelsea",
+     "P": 10,
+     "W": 5,
+     "D": 1,
+     "L": 4,
+     "GD": 3,
+     "Pts": 16,
+     "me": false
+    },
+    {
+     "pos": 6,
+     "team": "Everton",
+     "P": 10,
+     "W": 4,
+     "D": 4,
+     "L": 2,
+     "GD": 2,
+     "Pts": 16,
+     "me": false
+    },
+    {
+     "pos": 7,
+     "team": "Bournemouth",
+     "P": 10,
+     "W": 4,
+     "D": 3,
+     "L": 3,
+     "GD": 2,
+     "Pts": 15,
+     "me": false
+    },
+    {
+     "pos": 8,
+     "team": "Brentford",
+     "P": 10,
+     "W": 3,
+     "D": 5,
+     "L": 2,
+     "GD": 5,
+     "Pts": 14,
+     "me": false
+    },
+    {
+     "pos": 9,
+     "team": "Leeds United",
+     "P": 10,
+     "W": 3,
+     "D": 5,
+     "L": 2,
+     "GD": 2,
+     "Pts": 14,
+     "me": false
+    },
+    {
+     "pos": 10,
+     "team": "Aston Villa",
+     "P": 10,
+     "W": 3,
+     "D": 4,
+     "L": 3,
+     "GD": -3,
+     "Pts": 13,
+     "me": false
+    },
+    {
+     "pos": 11,
+     "team": "Tottenham Hotspur",
+     "P": 10,
+     "W": 3,
+     "D": 3,
+     "L": 4,
+     "GD": -1,
+     "Pts": 12,
+     "me": false
+    },
+    {
+     "pos": 12,
+     "team": "Newcastle United",
+     "P": 10,
+     "W": 3,
+     "D": 3,
+     "L": 4,
+     "GD": -3,
+     "Pts": 12,
+     "me": false
+    },
+    {
+     "pos": 13,
+     "team": "Hull City",
+     "P": 10,
+     "W": 2,
+     "D": 5,
+     "L": 3,
+     "GD": 0,
+     "Pts": 11,
+     "me": false
+    },
+    {
+     "pos": 14,
+     "team": "Ipswich Town",
+     "P": 10,
+     "W": 3,
+     "D": 2,
+     "L": 5,
+     "GD": -5,
+     "Pts": 11,
+     "me": false
+    },
+    {
+     "pos": 15,
+     "team": "Fulham",
+     "P": 10,
+     "W": 2,
+     "D": 4,
+     "L": 4,
+     "GD": -2,
+     "Pts": 10,
+     "me": false
+    },
+    {
+     "pos": 16,
+     "team": "Nottingham Forest",
+     "P": 10,
+     "W": 2,
+     "D": 3,
+     "L": 5,
+     "GD": -4,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 17,
+     "team": "Coventry City",
+     "P": 10,
+     "W": 3,
+     "D": 0,
+     "L": 7,
+     "GD": -9,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 18,
+     "team": "Manchester United",
+     "P": 10,
+     "W": 1,
+     "D": 5,
+     "L": 4,
+     "GD": -5,
+     "Pts": 8,
+     "me": false
+    },
+    {
+     "pos": 19,
+     "team": "Sunderland",
+     "P": 10,
+     "W": 2,
+     "D": 2,
+     "L": 6,
+     "GD": -9,
+     "Pts": 8,
+     "me": false
+    },
+    {
+     "pos": 20,
+     "team": "Crystal Palace",
+     "P": 10,
+     "W": 2,
+     "D": 1,
+     "L": 7,
+     "GD": -14,
+     "Pts": 7,
+     "me": false
+    }
+   ],
    "scorers": []
   },
   {
    "id": "ucl",
    "name": "Champions League",
-   "status": "League phase. Lost 3-2 at Fenerbahçe on 4 Nov (BBC); only two results entered so far.",
+   "status": "League phase after matchday 4 (BBC Sport, 9 Nov). The top 8 go straight to the last 16, so Liverpool sit right on the line. Top 20 shown. Next: Club Brugge away, 25 Nov.",
    "summary": {
-    "pos": "–",
-    "P": "–",
-    "W": "–",
-    "D": "–",
-    "L": "–",
-    "Pts": "–",
-    "GF": "–",
-    "GA": "–"
+    "pos": "8th",
+    "P": 4,
+    "W": 3,
+    "D": 0,
+    "L": 1,
+    "Pts": 9,
+    "GF": 14,
+    "GA": 10
    },
    "matches": [
     {
@@ -70,7 +291,228 @@
      "as": 6
     }
    ],
-   "table": [],
+   "table": [
+    {
+     "pos": 1,
+     "team": "Paris Saint-Germain",
+     "P": 4,
+     "W": 4,
+     "D": 0,
+     "L": 0,
+     "GD": 15,
+     "Pts": 12,
+     "me": false
+    },
+    {
+     "pos": 2,
+     "team": "Real Madrid",
+     "P": 4,
+     "W": 4,
+     "D": 0,
+     "L": 0,
+     "GD": 6,
+     "Pts": 12,
+     "me": false
+    },
+    {
+     "pos": 3,
+     "team": "Arsenal",
+     "P": 4,
+     "W": 3,
+     "D": 1,
+     "L": 0,
+     "GD": 5,
+     "Pts": 10,
+     "me": false
+    },
+    {
+     "pos": 4,
+     "team": "Como",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 13,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 5,
+     "team": "Barcelona",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 8,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 6,
+     "team": "Aston Villa",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 6,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 7,
+     "team": "Manchester City",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 5,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 8,
+     "team": "Liverpool",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 4,
+     "Pts": 9,
+     "me": true
+    },
+    {
+     "pos": 9,
+     "team": "Club Brugge",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 4,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 10,
+     "team": "Sporting CP",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 4,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 11,
+     "team": "Real Betis",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 2,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 12,
+     "team": "Borussia Dortmund",
+     "P": 4,
+     "W": 3,
+     "D": 0,
+     "L": 1,
+     "GD": 2,
+     "Pts": 9,
+     "me": false
+    },
+    {
+     "pos": 13,
+     "team": "Bayern Munich",
+     "P": 4,
+     "W": 2,
+     "D": 2,
+     "L": 0,
+     "GD": 7,
+     "Pts": 8,
+     "me": false
+    },
+    {
+     "pos": 14,
+     "team": "Stuttgart",
+     "P": 4,
+     "W": 2,
+     "D": 1,
+     "L": 1,
+     "GD": 3,
+     "Pts": 7,
+     "me": false
+    },
+    {
+     "pos": 15,
+     "team": "Inter Milan",
+     "P": 4,
+     "W": 2,
+     "D": 0,
+     "L": 2,
+     "GD": 2,
+     "Pts": 6,
+     "me": false
+    },
+    {
+     "pos": 16,
+     "team": "LASK",
+     "P": 4,
+     "W": 2,
+     "D": 0,
+     "L": 2,
+     "GD": 1,
+     "Pts": 6,
+     "me": false
+    },
+    {
+     "pos": 17,
+     "team": "Manchester United",
+     "P": 4,
+     "W": 2,
+     "D": 0,
+     "L": 2,
+     "GD": 0,
+     "Pts": 6,
+     "me": false
+    },
+    {
+     "pos": 18,
+     "team": "Galatasaray",
+     "P": 4,
+     "W": 2,
+     "D": 0,
+     "L": 2,
+     "GD": -1,
+     "Pts": 6,
+     "me": false
+    },
+    {
+     "pos": 19,
+     "team": "Fenerbahçe",
+     "P": 4,
+     "W": 1,
+     "D": 2,
+     "L": 1,
+     "GD": -5,
+     "Pts": 5,
+     "me": false
+    },
+    {
+     "pos": 20,
+     "team": "Roma",
+     "P": 4,
+     "W": 1,
+     "D": 1,
+     "L": 2,
+     "GD": 2,
+     "Pts": 4,
+     "me": false
+    }
+   ],
    "scorers": []
   },
   {
@@ -85,7 +527,7 @@
   {
    "id": "lc",
    "name": "League Cup",
-   "status": "No data entered yet.",
+   "status": "Quarter-final at home to Bournemouth, expected the week of 14 Dec (exact date not confirmed in sources I could reach).",
    "summary": null,
    "matches": [],
    "table": [],

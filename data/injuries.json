@@ -1,45 +1,61 @@
 {
- "note": "Return windows are estimates from press reports and change often. Confidence is my read of how consistent the sources are.",
+ "note": "Club list last updated 6 Nov; press reports from 9 Nov added. Return windows are estimates, so read the confidence label.",
  "items": [
   {
-   "n": "Dominik Szoboszlai",
-   "issue": "Knee, tests ahead of Hungary Nations League games",
-   "window": "Doubt for international duty; club availability TBC after tests",
+   "n": "Virgil van Dijk",
+   "issue": "Withdrew from Netherlands squad with an injury issue (9 Nov)",
+   "window": "Unknown. Doubt for Man Utd (22 Nov) per reports",
    "conf": "Low",
-   "src": "BBC Sport, 9 Nov 2026",
-   "url": "https://www.bbc.co.uk/sport/football/teams/liverpool"
+   "src": "The Independent, 9 Nov",
+   "url": "https://news.google.com/rss/articles/CBMiugFBVV95cUxPZlNkV0E5NjZCYTkzZDMzY0s0OHEtejJmQkFsc2dyZDRpYmZnSy04MFBid05ON0JmQVRRWDdLRFNnUnpJa19kbF8xY1VFeEdMeEdYbTZIdFZWamFLejktYlJkNkwwanBuQmhWN3JyOGRMcTBJRk5aOUZEVUlzN1RJZ3owekZRcnlDeGhqTWdkTnd4SVVCMzYyTzNZRlJjM0Nrc0JmWFVfdlE1WVpQQjlVN1VrOE0zcGZZeWc?oc=5"
+  },
+  {
+   "n": "Dominik Szoboszlai",
+   "issue": "Knee, hurt in the Palace win; tests pending",
+   "window": "Unknown until tests; Hungary duty in doubt",
+   "conf": "Low",
+   "src": "BBC Sport, 9 Nov",
+   "url": "https://www.bbc.co.uk/sport/football/articles/cmp3g31gvxkgo"
+  },
+  {
+   "n": "Ryan Gravenberch",
+   "issue": "Heel; missed Fenerbahçe and the Palace game",
+   "window": "Day-to-day, pain-led (Iraola, 6 Nov)",
+   "conf": "Medium",
+   "src": "Liverpool FC injury list, 6 Nov",
+   "url": "https://www.liverpoolfc.com/news/liverpools-injury-list-suspensions-and-availability"
   },
   {
    "n": "Jeremie Frimpong",
-   "issue": "Not specified in sources",
-   "window": "Possible return around 22 Nov (vs Man Utd)",
-   "conf": "Medium",
-   "src": "Sports Mole, 4 Nov 2026",
-   "url": "https://www.sportsmole.co.uk/football/liverpool/injury-news/injuries-and-suspensions/latest-on-ekitike-and-frimpong-liverpool-injury-suspension-list-vs-fenerbahce_608230.html"
-  },
-  {
-   "n": "Conor Bradley",
-   "issue": "Rehab, ball work started",
-   "window": "Late Nov, not yet in team training",
-   "conf": "Medium",
-   "src": "Sports Mole / 3addedminutes",
-   "url": "https://www.3addedminutes.com/sport/football/liverpool/isak-gakpo-szoboszlai-latest-liverpool-injury-news-9281124"
+   "issue": "New muscle injury at Brentford",
+   "window": "After the break; Man Utd (22 Nov) is the press target",
+   "conf": "Low",
+   "src": "Club list + Sports Mole",
+   "url": "https://www.liverpoolfc.com/news/liverpools-injury-list-suspensions-and-availability"
   },
   {
    "n": "Hugo Ekitiké",
-   "issue": "Achilles",
-   "window": "Late Nov to December; some reports say far longer",
-   "conf": "Low",
-   "src": "Sports Mole / 3addedminutes",
-   "url": "https://www.sportsmole.co.uk/football/liverpool/injury-news/injuries-and-suspensions/latest-on-ekitike-and-frimpong-liverpool-injury-suspension-list-vs-fenerbahce_608230.html"
+   "issue": "Ruptured Achilles (April)",
+   "window": "Club hoped he could help in January; press say late Dec",
+   "conf": "Medium",
+   "src": "Club list, Iraola 11 Sep",
+   "url": "https://www.liverpoolfc.com/news/liverpools-injury-list-suspensions-and-availability"
   },
   {
    "n": "Giovanni Leoni",
-   "issue": "Long-term",
-   "window": "November to late 2026",
+   "issue": "ACL plus knee damage",
+   "window": "Back in team training around this break; no match date",
+   "conf": "Medium",
+   "src": "Club list, Iraola 15 Oct",
+   "url": "https://www.liverpoolfc.com/news/liverpools-injury-list-suspensions-and-availability"
+  },
+  {
+   "n": "Conor Bradley",
+   "issue": "Knee surgery after January injury",
+   "window": "Long-term; no date from club",
    "conf": "Low",
-   "src": "Walk On",
-   "url": "https://walkon.com/blog/liverpool-injury-news-expected-return-dates-alisson-jeremie-frimpong-giovanni-leoni/"
+   "src": "Club list, Iraola 14 Sep",
+   "url": "https://www.liverpoolfc.com/news/liverpools-injury-list-suspensions-and-availability"
   }
  ]
 }
